@@ -31,8 +31,13 @@ public class AgentSessionManager {
      */
     public AgentSession getOrCreate(String sessionId) {
         if (sessionId == null || sessionId.isBlank()) {
-            return createNew(null);
+            // sessionId 为空时创建匿名 Session，并手动存入 Map
+            AgentSession session = createNew(null);
+            sessions.put(session.getSessionId(), session);
+            return session;
         }
+        // computeIfAbsent 会自动将 createNew 的返回值存入 Map，
+        // 因此 createNew 内部不能再调用 sessions.put()，否则触发 Recursive update
         return sessions.computeIfAbsent(sessionId, this::createNew);
     }
 
@@ -50,7 +55,10 @@ public class AgentSessionManager {
                 .createdAt(Instant.now())
                 .build();
 
-        sessions.put(id, session);
+        // 注意：当通过 computeIfAbsent 调用时，不能在此处再调用 sessions.put()，
+        // 否则会触发 ConcurrentHashMap 的 Recursive update 异常。
+        // computeIfAbsent 会自动将返回值写入 Map；
+        // 直接调用 createNew(null) 的场景（sessionId 为空）由调用方自行处理。
         log.info("新 Session 已创建: {}", id);
         return session;
     }
