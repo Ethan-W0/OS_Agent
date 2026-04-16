@@ -1,0 +1,109 @@
+/* ===================================
+   水墨风格设计系统 CSS 变量
+   宣纸底、浓墨字、朱砂红警示
+   =================================== */
+
+:root {
+  /* 墨色系 */
+  --ink-black:   #1a1208;
+  --ink-dark:    #2d2318;
+  --ink-medium:  #4a4035;
+  --ink-light:   #7a6e60;
+  --ink-faint:   #b0a898;
+
+  /* 宣纸色系 */
+  --paper-white:  #f5f0e8;
+  --paper-cream:  #ede5d0;
+  --paper-warm:   #e8dfc8;
+  --paper-aged:   #d9cdb8;
+
+  /* 朱砂红（高危警告） */
+  --cinnabar:        #c0392b;
+  --cinnabar-light:  #e74c3c;
+  --cinnabar-pale:   #fdecea;
+  --cinnabar-border: rgba(192, 57, 43, 0.4);
+
+  /* 翠玉绿（成功状态） */
+  --jade:        #27ae60;
+  --jade-light:  #2ecc71;
+  --jade-pale:   #eafaf1;
+
+  /* 警告橙（WARNING 级别） */
+  --amber:       #e67e22;
+  --amber-pale:  #fef9f0;
+
+  /* 边框与阴影 */
+  --ink-border:  1px solid rgba(26, 18, 8, 0.15);
+  --ink-border-dark: 1px solid rgba(26, 18, 8, 0.3);
+  --shadow-ink:  2px 4px 16px rgba(26, 18, 8, 0.12);
+  --shadow-deep: 4px 8px 24px rgba(26, 18, 8, 0.2);
+
+  /* 字体 */
+  --font-serif:  'Noto Serif SC', 'SimSun', '宋体', serif;
+  --font-mono:   'Fira Code', 'Cascadia Code', 'Courier New', monospace;
+
+  /* 圆角 */
+  --radius-sm:   4px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+
+  /* 过渡 */
+  --transition:  all 0.25s ease;
+}
+
+/* ===================================
+   基础重置
+   =================================== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  font-family: var(--font-serif);
+  background-color: var(--paper-cream);
+  color: var(--ink-black);
+  line-height: 1.7;
+  font-size: 15px;
+}
+
+/* 宣纸纹理背景（通过 SVG noise 模拟） */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+}
+
+#app {
+  height: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+/* ===================================
+   滚动条样式
+   =================================== */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--paper-warm); }
+::-webkit-scrollbar-thumb { background: var(--ink-faint); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--ink-light); }
+
+/* ===================================
+   通用工具类
+   =================================== */
+.text-ink       { color: var(--ink-black); }
+.text-ink-light { color: var(--ink-light); }
+.text-cinnabar  { color: var(--cinnabar); }
+.text-jade      { color: var(--jade); }
+.text-mono      { font-family: var(--font-mono); }
+
+.ink-divider {
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--ink-faint), transparent);
+  margin: 12px 0;
+}

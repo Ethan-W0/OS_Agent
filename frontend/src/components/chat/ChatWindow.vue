@@ -1,0 +1,502 @@
+<template>
+  <div class="chat-window">
+    <!-- 消息列表区 -->
+    <div class="messages-area" ref="messagesEl">
+      <!-- 欢迎语 -->
+      <div v-if="chatStore.messages.length === 0" class="welcome-screen">
+        <div class="welcome-seal">印</div>
+        <h2 class="welcome-title">操作系统智能代理</h2>
+        <p class="welcome-sub">以自然语言，驭 Linux 服务器</p>
+        <div class="welcome-hints">
+          <span @click="sendQuick('查询当前磁盘使用情况')">📀 查询磁盘使用情况</span>
+          <span @click="sendQuick('列出当前 CPU 占用最高的进程')">⚙️ 查看进程资源占用</span>
+          <span @click="sendQuick('查询当前监听的端口列表')">🔌 查询开放端口</span>
+          <span @click="sendQuick('列出所有普通用户账号')">👤 查看系统用户</span>
+        </div>
+      </div>
+
+      <!-- 消息气泡 -->
+      <template v-for="msg in chatStore.messages" :key="msg.id">
+        <!-- 用户消息 -->
+        <div v-if="msg.type === 'USER'" class="msg-row msg-user">
+          <div class="bubble bubble-user">{{ msg.content }}</div>
+        </div>
+
+        <!-- 高危风险警告卡（CRITICAL） -->
+        <RiskWarningCard
+          v-else-if="msg.type === 'RISK_WARNING' && msg.riskLevel === 'CRITICAL' && msg.confirmationToken"
+          :msg="msg"
+          @confirmed="handleConfirm(msg, true)"
+          @rejected="handleConfirm(msg, false)"
+        />
+
+        <!-- WARNING 提示（不阻断，只展示） -->
+        <div v-else-if="msg.type === 'RISK_WARNING' && msg.riskLevel === 'WARNING'"
+             class="msg-row msg-agent">
+          <div class="bubble bubble-warning">
+            <span class="bubble-icon">⚠️</span>
+            <span>{{ msg.rationale }}</span>
+          </div>
+        </div>
+
+        <!-- 操作被拒绝 -->
+        <div v-else-if="msg.type === 'REJECTED'" class="msg-row msg-agent">
+          <div class="bubble bubble-rejected">
+            <span class="bubble-icon">❌</span>
+            <div>
+              <div class="rejected-title">操作已拒绝</div>
+              <div v-if="msg.command" class="code-block">{{ msg.command }}</div>
+              <div class="rejected-reason">{{ msg.rationale }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 命令预览 -->
+        <div v-else-if="msg.type === 'COMMAND_PREVIEW'" class="msg-row msg-agent">
+          <div class="bubble bubble-command">
+            <span class="cmd-label">执行命令</span>
+            <code class="code-block">{{ msg.command }}</code>
+          </div>
+        </div>
+
+        <!-- 节点进度 -->
+        <div v-else-if="msg.type === 'NODE_PROGRESS'" class="msg-row msg-agent">
+          <div class="bubble bubble-progress">
+            <span class="progress-dot"></span>
+            <span class="progress-text">{{ msg.content }}</span>
+          </div>
+        </div>
+
+        <!-- 普通文本 / 结果 -->
+        <div v-else-if="['TEXT', 'RESULT'].includes(msg.type)" class="msg-row msg-agent">
+          <div class="bubble bubble-agent" v-html="renderMarkdown(msg.content)"></div>
+        </div>
+
+        <!-- 错误 -->
+        <div v-else-if="msg.type === 'ERROR'" class="msg-row msg-agent">
+          <div class="bubble bubble-error">
+            <span class="bubble-icon">⚠️</span>
+            <span>{{ msg.content }}</span>
+          </div>
+        </div>
+      </template>
+
+      <!-- 流式输出中 -->
+      <div v-if="chatStore.isStreaming" class="msg-row msg-agent">
+        <div class="bubble bubble-agent streaming">
+          <span>{{ chatStore.streamingContent }}</span>
+          <span class="cursor-blink">|</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 输入区 -->
+    <div class="input-area">
+      <div class="input-conn-info" v-if="sshStore.getActive()">
+        <span class="conn-dot online"></span>
+        <span>{{ sshStore.getActive()?.name }} · {{ sshStore.getActive()?.osInfo || '探测中...' }}</span>
+      </div>
+      <div class="input-conn-info warn" v-else>
+        <span class="conn-dot"></span>
+        <span>请先在左侧添加 SSH 连接</span>
+      </div>
+
+      <div class="input-box">
+        <textarea
+          v-model="inputText"
+          class="input-textarea"
+          placeholder="用自然语言描述您的操作需求，例如：查询磁盘使用情况..."
+          @keydown.enter.exact.prevent="sendMessage"
+          @keydown.enter.shift.exact="inputText += '\n'"
+          rows="3"
+        ></textarea>
+        <button class="btn-send" :disabled="!inputText.trim() || isSending" @click="sendMessage">
+          <span v-if="isSending" class="loading-dots">···</span>
+          <span v-else>发送</span>
+        </button>
+      </div>
+      <p class="input-hint">Enter 发送 · Shift+Enter 换行</p>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, nextTick, watch } from 'vue'
+import { marked } from 'marked'
+import axios from 'axios'
+import { useChatStore, type ChatMessage } from '@/stores/chatStore'
+import { useSshStore } from '@/stores/sshStore'
+import RiskWarningCard from '@/components/risk/RiskWarningCard.vue'
+
+const chatStore = useChatStore()
+const sshStore = useSshStore()
+const messagesEl = ref<HTMLElement | null>(null)
+const inputText = ref('')
+const isSending = ref(false)
+
+// 自动滚动到底部
+watch(() => chatStore.messages.length, () => {
+  nextTick(() => {
+    if (messagesEl.value) {
+      messagesEl.value.scrollTop = messagesEl.value.scrollHeight
+    }
+  })
+})
+
+async function sendMessage() {
+  const text = inputText.value.trim()
+  if (!text || isSending.value) return
+
+  chatStore.addUserMessage(text)
+  inputText.value = ''
+  isSending.value = true
+
+  try {
+    const resp = await axios.post('/api/chat', {
+      sessionId: chatStore.sessionId,
+      message: text,
+      sshConnectionId: sshStore.activeConnectionId || undefined
+    })
+    chatStore.sessionId = resp.data.sessionId
+  } catch (e) {
+    chatStore.handleServerMessage({ type: 'ERROR', content: '发送失败，请检查后端服务是否运行。' })
+  } finally {
+    isSending.value = false
+  }
+}
+
+function sendQuick(text: string) {
+  inputText.value = text
+  sendMessage()
+}
+
+async function handleConfirm(msg: ChatMessage, approved: boolean) {
+  try {
+    await axios.post('/api/security/confirm', {
+      confirmationToken: msg.confirmationToken,
+      sessionId: chatStore.sessionId,
+      approved
+    })
+    chatStore.markConfirmation(msg.confirmationToken!, approved)
+  } catch (e) {
+    console.error('确认请求失败', e)
+  }
+}
+
+function renderMarkdown(content: string): string {
+  if (!content) return ''
+  return marked(content) as string
+}
+</script>
+
+<style scoped>
+.chat-window {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--paper-white);
+}
+
+/* ===== 消息区 ===== */
+.messages-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ===== 欢迎屏 ===== */
+.welcome-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 12px;
+  color: var(--ink-light);
+}
+
+.welcome-seal {
+  width: 64px;
+  height: 64px;
+  background: var(--cinnabar);
+  color: white;
+  font-size: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(192, 57, 43, 0.35);
+}
+
+.welcome-title { font-size: 22px; color: var(--ink-medium); font-weight: 700; }
+.welcome-sub   { font-size: 14px; color: var(--ink-faint); }
+
+.welcome-hints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.welcome-hints span {
+  padding: 6px 14px;
+  border: var(--ink-border);
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: var(--transition);
+  color: var(--ink-medium);
+  background: var(--paper-cream);
+}
+
+.welcome-hints span:hover {
+  background: var(--paper-warm);
+  border-color: var(--ink-medium);
+  color: var(--ink-black);
+}
+
+/* ===== 消息行 ===== */
+.msg-row {
+  display: flex;
+  max-width: 82%;
+}
+
+.msg-user  { align-self: flex-end; justify-content: flex-end; }
+.msg-agent { align-self: flex-start; }
+
+/* ===== 气泡 ===== */
+.bubble {
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  line-height: 1.7;
+  word-break: break-word;
+}
+
+.bubble-user {
+  background: var(--ink-dark);
+  color: var(--paper-cream);
+  border-radius: var(--radius-md) var(--radius-md) 4px var(--radius-md);
+}
+
+.bubble-agent {
+  background: var(--paper-cream);
+  border: var(--ink-border);
+  color: var(--ink-black);
+  border-radius: 4px var(--radius-md) var(--radius-md) var(--radius-md);
+  box-shadow: var(--shadow-ink);
+}
+
+.bubble-warning {
+  background: var(--amber-pale);
+  border: 1px solid rgba(230, 126, 34, 0.3);
+  color: var(--amber);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  border-radius: var(--radius-md);
+}
+
+.bubble-rejected {
+  background: var(--cinnabar-pale);
+  border: 1px solid var(--cinnabar-border);
+  color: var(--ink-dark);
+  display: flex;
+  gap: 10px;
+  border-radius: var(--radius-md);
+}
+
+.rejected-title { font-weight: 700; color: var(--cinnabar); margin-bottom: 4px; }
+.rejected-reason { font-size: 13px; color: var(--ink-medium); margin-top: 6px; line-height: 1.6; }
+
+.bubble-command {
+  background: var(--ink-dark);
+  color: var(--paper-cream);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cmd-label {
+  font-size: 11px;
+  color: var(--ink-faint);
+  letter-spacing: 0.5px;
+}
+
+.code-block {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  background: rgba(0,0,0,0.2);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  display: block;
+  word-break: break-all;
+}
+
+.bubble-progress {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 4px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-light);
+  font-size: 13px;
+}
+
+.progress-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--ink-faint);
+  border-radius: 50%;
+  animation: pulse 1.4s infinite;
+}
+
+.bubble-error {
+  background: var(--cinnabar-pale);
+  border: 1px solid var(--cinnabar-border);
+  color: var(--cinnabar);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: var(--radius-md);
+}
+
+.bubble-icon { font-size: 16px; flex-shrink: 0; }
+
+.streaming { opacity: 0.9; }
+.cursor-blink {
+  animation: blink 1s step-end infinite;
+  font-weight: 100;
+  color: var(--ink-medium);
+}
+
+/* ===== 输入区 ===== */
+.input-area {
+  padding: 16px 32px 20px;
+  border-top: var(--ink-border);
+  background: var(--paper-cream);
+}
+
+.input-conn-info {
+  font-size: 12px;
+  color: var(--ink-light);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.input-conn-info.warn { color: var(--amber); }
+
+.conn-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ink-faint);
+}
+
+.conn-dot.online { background: var(--jade); }
+
+.input-box {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.input-textarea {
+  flex: 1;
+  resize: none;
+  border: var(--ink-border-dark);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-family: var(--font-serif);
+  font-size: 14px;
+  color: var(--ink-black);
+  background: var(--paper-white);
+  line-height: 1.6;
+  transition: var(--transition);
+  outline: none;
+}
+
+.input-textarea:focus {
+  border-color: var(--ink-medium);
+  box-shadow: 0 0 0 2px rgba(74, 64, 53, 0.1);
+}
+
+.btn-send {
+  padding: 10px 20px;
+  background: var(--ink-dark);
+  color: var(--paper-cream);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-family: var(--font-serif);
+  font-size: 14px;
+  font-weight: 500;
+  transition: var(--transition);
+  min-width: 72px;
+  align-self: flex-end;
+}
+
+.btn-send:hover:not(:disabled) { background: var(--ink-black); }
+.btn-send:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.loading-dots {
+  letter-spacing: 3px;
+  animation: dots 1s step-end infinite;
+}
+
+.input-hint {
+  font-size: 11px;
+  color: var(--ink-faint);
+  margin-top: 6px;
+  text-align: right;
+}
+
+/* ===== Markdown 内容样式 ===== */
+.bubble-agent :deep(pre) {
+  background: var(--paper-warm);
+  border: var(--ink-border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  margin: 8px 0;
+}
+
+.bubble-agent :deep(code) {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  background: var(--paper-warm);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.bubble-agent :deep(strong) { color: var(--ink-black); font-weight: 700; }
+.bubble-agent :deep(p) { margin: 4px 0; }
+
+/* ===== 动画 ===== */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.8); }
+}
+
+@keyframes dots {
+  0%, 100% { opacity: 1; }
+  33%       { opacity: 0.4; }
+  66%       { opacity: 0.7; }
+}
+</style>
