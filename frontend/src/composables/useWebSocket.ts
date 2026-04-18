@@ -4,23 +4,32 @@ import SockJS from 'sockjs-client'
 import { useChatStore } from '@/stores/chatStore'
 
 let stompClient: Client | null = null
+let currentSessionId: string | null = null
 
 export function useWebSocket() {
   const connected = ref(false)
   const chatStore = useChatStore()
 
   function connect(sessionId: string) {
-    if (stompClient?.active) return
+    // If already connected to the same session, do nothing
+    if (stompClient?.active && currentSessionId === sessionId) return
+
+    // Disconnect old client if connecting to a different session
+    if (stompClient?.active) {
+      stompClient.deactivate()
+    }
+
+    currentSessionId = sessionId
 
     stompClient = new Client({
       webSocketFactory: () => new SockJS('/ws'),
       reconnectDelay: 3000,
       onConnect: () => {
         connected.value = true
-        console.log('WebSocket 已连接')
+        console.log('WebSocket 已连接, session:', currentSessionId)
 
-        // 订阅该 session 的消息推送
-        stompClient!.subscribe(`/topic/session/${sessionId}`, (message) => {
+        // Re-subscribe on every connect/reconnect
+        stompClient!.subscribe(`/topic/session/${currentSessionId}`, (message) => {
           const data = JSON.parse(message.body)
           chatStore.handleServerMessage(data)
         })

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 
 export interface SshConnection {
   id: string
@@ -11,9 +11,21 @@ export interface SshConnection {
   osInfo?: string
 }
 
+const SSH_STORAGE_KEY = 'os_agent_ssh_connections'
+const SSH_ACTIVE_KEY = 'os_agent_ssh_active_id'
+
 export const useSshStore = defineStore('ssh', () => {
-  const connections = ref<SshConnection[]>([])
-  const activeConnectionId = ref<string>('')
+  const saved = localStorage.getItem(SSH_STORAGE_KEY)
+  const connections = ref<SshConnection[]>(saved ? JSON.parse(saved) : [])
+  const activeConnectionId = ref<string>(localStorage.getItem(SSH_ACTIVE_KEY) || '')
+
+  watch(connections, (val) => {
+    localStorage.setItem(SSH_STORAGE_KEY, JSON.stringify(val))
+  }, { deep: true })
+
+  watch(activeConnectionId, (val) => {
+    localStorage.setItem(SSH_ACTIVE_KEY, val)
+  })
 
   function addConnection(conn: SshConnection) {
     connections.value.push(conn)
@@ -32,5 +44,9 @@ export const useSshStore = defineStore('ssh', () => {
     return connections.value.find(c => c.id === activeConnectionId.value)
   }
 
-  return { connections, activeConnectionId, addConnection, removeConnection, setActive, getActive }
+  function replaceAll(conns: SshConnection[]) {
+    connections.value = conns
+  }
+
+  return { connections, activeConnectionId, addConnection, removeConnection, setActive, getActive, replaceAll }
 })

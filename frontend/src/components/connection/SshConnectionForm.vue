@@ -49,9 +49,11 @@
 import { ref, reactive } from 'vue'
 import axios from 'axios'
 import { useSshStore } from '@/stores/sshStore'
+import { useChatStore } from '@/stores/chatStore'
 
 const emit = defineEmits<{ close: []; connected: [] }>()
 const sshStore = useSshStore()
+const chatStore = useChatStore()
 
 const connecting = ref(false)
 const errorMsg = ref('')
@@ -81,6 +83,16 @@ async function submit() {
       osInfo: data.osInfo
     })
     sshStore.setActive(data.id)
+
+    // 将环境信息作为系统消息展示到聊天窗口
+    if (data.envInfo) {
+      chatStore.addMessage({
+        type: 'RESULT',
+        content: `### 🖥 服务器环境信息\n\n连接 **${form.name}** (${form.username}@${form.host}) 已建立\n\n${data.envInfo}`,
+        finished: true
+      })
+    }
+
     emit('connected')
   } catch (e: any) {
     errorMsg.value = e.response?.data?.message || '连接失败，请检查连接信息'

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import axios from 'axios'
 
 export type MessageType = 'TEXT' | 'RISK_WARNING' | 'COMMAND_PREVIEW' | 'RESULT'
   | 'ERROR' | 'NODE_PROGRESS' | 'REJECTED' | 'TOKEN' | 'USER'
@@ -29,11 +30,19 @@ export interface ChatMessage {
   confirmed?: boolean  // true=已批准，false=已拒绝，undefined=待确认
 }
 
+const SESSION_STORAGE_KEY = 'os_agent_session_id'
+
 export const useChatStore = defineStore('chat', () => {
   const messages = ref<ChatMessage[]>([])
-  const sessionId = ref<string>('')
   const isStreaming = ref(false)
   const streamingContent = ref('')
+  const isProcessing = ref(false)
+
+  // Persist sessionId across page refreshes
+  const sessionId = ref<string>(
+    localStorage.getItem(SESSION_STORAGE_KEY) || crypto.randomUUID()
+  )
+  localStorage.setItem(SESSION_STORAGE_KEY, sessionId.value)
 
   function addMessage(msg: Omit<ChatMessage, 'id' | 'timestamp'>) {
     messages.value.push({
@@ -62,8 +71,14 @@ export const useChatStore = defineStore('chat', () => {
     const type = data.type as MessageType
 
     if (type === 'TOKEN') {
+      isProcessing.value = false
       appendToken(data.content || '', data.finished)
       return
+    }
+
+    // Terminal message types clear processing state
+    if (['TEXT', 'RESULT', 'ERROR', 'REJECTED'].includes(type)) {
+      isProcessing.value = false
     }
 
     addMessage({
@@ -90,10 +105,50 @@ export const useChatStore = defineStore('chat', () => {
     messages.value = []
     streamingContent.value = ''
     isStreaming.value = false
+    isProcessing.value = false
+    const newId = crypto.randomUUID()
+    sessionId.value = newId
+    localStorage.setItem(SESSION_STORAGE_KEY, newId)
+  }
+
+  async function loadHistory() {
+    try {
+      const resp = await axios.get(`/api/chat/session/${sessionId.value}/history`)
+      const history = resp.data as Array<any>
+      // Always assign — even empty array clears stale messages
+      messages.value = history.map((msg: any) => ({
+        id: msg.id?.toString() || crypto.randomUUID(),
+        type: msg.type as MessageType,
+        content: msg.content || '',
+        command: msg.command,
+        riskLevel: msg.riskLevel,
+        rationale: msg.rationale,
+        suggestedAlternative: msg.suggestedAlternative,
+        confirmationToken: msg.confirmationToken,
+        nodeName: msg.nodeName,
+        timestamp: new Date(msg.createdAt),
+        finished: msg.finished ?? true,
+        confirmed: msg.confirmed
+      }))
+    } catch (e) {
+      console.warn('Failed to load chat history from server', e)
+    }
+  }
+
+  async function switchSession(newSessionId: string) {
+    if (newSessionId === sessionId.value) return
+    messages.value = []
+    streamingContent.value = ''
+    isStreaming.value = false
+    isProcessing.value = false
+    sessionId.value = newSessionId
+    localStorage.setItem(SESSION_STORAGE_KEY, newSessionId)
+    await loadHistory()
   }
 
   return {
-    messages, sessionId, isStreaming, streamingContent,
-    addUserMessage, appendToken, handleServerMessage, markConfirmation, clearMessages
+    messages, sessionId, isStreaming, streamingContent, isProcessing,
+    addUserMessage, addMessage, appendToken, handleServerMessage,
+    markConfirmation, clearMessages, loadHistory, switchSession
   }
 })

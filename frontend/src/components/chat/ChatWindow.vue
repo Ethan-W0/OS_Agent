@@ -88,6 +88,16 @@
           <span class="cursor-blink">|</span>
         </div>
       </div>
+
+      <!-- 等待响应中（思考状态） -->
+      <div v-if="chatStore.isProcessing && !chatStore.isStreaming" class="msg-row msg-agent">
+        <div class="bubble bubble-thinking">
+          <div class="thinking-dots">
+            <span></span><span></span><span></span>
+          </div>
+          <span class="thinking-text">正在思考中...</span>
+        </div>
+      </div>
     </div>
 
     <!-- 输入区 -->
@@ -143,6 +153,14 @@ watch(() => chatStore.messages.length, () => {
   })
 })
 
+watch(() => chatStore.streamingContent, () => {
+  nextTick(() => {
+    if (messagesEl.value) {
+      messagesEl.value.scrollTop = messagesEl.value.scrollHeight
+    }
+  })
+})
+
 async function sendMessage() {
   const text = inputText.value.trim()
   if (!text || isSending.value) return
@@ -150,6 +168,7 @@ async function sendMessage() {
   chatStore.addUserMessage(text)
   inputText.value = ''
   isSending.value = true
+  chatStore.isProcessing = true
 
   try {
     const resp = await axios.post('/api/chat', {
@@ -159,6 +178,7 @@ async function sendMessage() {
     })
     chatStore.sessionId = resp.data.sessionId
   } catch (e) {
+    chatStore.isProcessing = false
     chatStore.handleServerMessage({ type: 'ERROR', content: '发送失败，请检查后端服务是否运行。' })
   } finally {
     isSending.value = false
@@ -377,6 +397,40 @@ function renderMarkdown(content: string): string {
   color: var(--ink-medium);
 }
 
+/* ===== 思考中气泡 ===== */
+.bubble-thinking {
+  background: var(--paper-cream);
+  border: var(--ink-border);
+  border-radius: 4px var(--radius-md) var(--radius-md) var(--radius-md);
+  box-shadow: var(--shadow-ink);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+}
+
+.thinking-dots {
+  display: flex;
+  gap: 4px;
+}
+
+.thinking-dots span {
+  width: 6px;
+  height: 6px;
+  background: var(--ink-light);
+  border-radius: 50%;
+  animation: thinking-bounce 1.4s ease-in-out infinite;
+}
+
+.thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+.thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+.thinking-text {
+  font-size: 13px;
+  color: var(--ink-light);
+  font-style: italic;
+}
+
 /* ===== 输入区 ===== */
 .input-area {
   padding: 16px 32px 20px;
@@ -470,6 +524,15 @@ function renderMarkdown(content: string): string {
   font-family: var(--font-mono);
   font-size: 13px;
   margin: 8px 0;
+  white-space: pre;
+  line-height: 1.5;
+}
+
+.bubble-agent :deep(pre code) {
+  background: none;
+  padding: 0;
+  font-size: 13px;
+  white-space: pre;
 }
 
 .bubble-agent :deep(code) {
@@ -480,8 +543,56 @@ function renderMarkdown(content: string): string {
   border-radius: 3px;
 }
 
+/* ===== Markdown 表格样式 ===== */
+.bubble-agent :deep(table) {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 10px 0;
+  font-size: 13px;
+  font-family: var(--font-mono);
+  overflow-x: auto;
+  display: block;
+}
+
+.bubble-agent :deep(th),
+.bubble-agent :deep(td) {
+  border: 1px solid var(--ink-faint);
+  padding: 5px 10px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.bubble-agent :deep(th) {
+  background: var(--paper-warm);
+  color: var(--ink-dark);
+  font-weight: 600;
+  font-family: var(--font-serif);
+}
+
+.bubble-agent :deep(tr:nth-child(even) td) {
+  background: rgba(0, 0, 0, 0.025);
+}
+
 .bubble-agent :deep(strong) { color: var(--ink-black); font-weight: 700; }
+.bubble-agent :deep(em) { color: var(--ink-medium); font-style: italic; }
 .bubble-agent :deep(p) { margin: 4px 0; }
+.bubble-agent :deep(ul), .bubble-agent :deep(ol) { padding-left: 20px; margin: 6px 0; }
+.bubble-agent :deep(li) { margin: 2px 0; }
+.bubble-agent :deep(h1), .bubble-agent :deep(h2), .bubble-agent :deep(h3) {
+  font-weight: 700;
+  color: var(--ink-dark);
+  margin: 10px 0 4px;
+  line-height: 1.4;
+}
+.bubble-agent :deep(h1) { font-size: 16px; }
+.bubble-agent :deep(h2) { font-size: 15px; }
+.bubble-agent :deep(h3) { font-size: 14px; }
+.bubble-agent :deep(blockquote) {
+  border-left: 3px solid var(--ink-faint);
+  padding-left: 10px;
+  color: var(--ink-light);
+  margin: 6px 0;
+}
 
 /* ===== 动画 ===== */
 @keyframes blink {
@@ -498,5 +609,10 @@ function renderMarkdown(content: string): string {
   0%, 100% { opacity: 1; }
   33%       { opacity: 0.4; }
   66%       { opacity: 0.7; }
+}
+
+@keyframes thinking-bounce {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40%           { transform: scale(1); opacity: 1; }
 }
 </style>

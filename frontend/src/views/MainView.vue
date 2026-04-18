@@ -43,12 +43,18 @@
         </button>
       </div>
 
-      <!-- 清空对话 -->
-      <div style="margin-top: auto; padding: 12px 16px;">
-        <button class="btn-ink btn-sm btn-full" @click="clearChat">
-          🗑 清空对话记忆
+      <!-- 新会话 / 清空 -->
+      <div style="padding: 8px 16px 4px; display: flex; gap: 6px;">
+        <button class="btn-ink btn-sm btn-flex" @click="newSession" title="保留历史，开启新对话">
+          ✦ 新会话
+        </button>
+        <button class="btn-ink btn-sm btn-flex btn-danger" @click="clearChat" title="删除当前会话记录">
+          🗑 清空
         </button>
       </div>
+
+      <!-- 会话历史 -->
+      <SessionHistory />
     </aside>
 
     <!-- 主聊天区 -->
@@ -76,6 +82,7 @@ import { useWebSocket } from '@/composables/useWebSocket'
 import ChatWindow from '@/components/chat/ChatWindow.vue'
 import SshConnectionForm from '@/components/connection/SshConnectionForm.vue'
 import ModelConfigPanel from '@/components/config/ModelConfigPanel.vue'
+import SessionHistory from '@/components/session/SessionHistory.vue'
 import axios from 'axios'
 
 const sshStore = useSshStore()
@@ -85,12 +92,33 @@ const { connect } = useWebSocket()
 const showAddConn = ref(false)
 const showModelConfig = ref(false)
 
-onMounted(() => {
-  // 确保 sessionId 并建立 WebSocket
-  if (!chatStore.sessionId) {
-    chatStore.sessionId = crypto.randomUUID()
-  }
+onMounted(async () => {
   connect(chatStore.sessionId)
+
+  // Restore chat history from MySQL
+  await chatStore.loadHistory()
+
+  // Restore SSH connections from backend (survive page refresh)
+  try {
+    const resp = await axios.get('/api/ssh/connections')
+    const backendConns = resp.data as Array<any>
+    if (backendConns.length > 0) {
+      sshStore.replaceAll(backendConns.map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        host: c.host,
+        port: c.port,
+        username: c.username,
+        connected: c.connected,
+        osInfo: c.osInfo
+      })))
+      if (sshStore.activeConnectionId && !backendConns.find((c: any) => c.id === sshStore.activeConnectionId)) {
+        sshStore.setActive(backendConns[0]?.id || '')
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to restore SSH connections from backend', e)
+  }
 })
 
 async function deleteConnection(id: string) {
@@ -103,7 +131,11 @@ async function clearChat() {
     await axios.delete(`/api/chat/session/${chatStore.sessionId}`)
   }
   chatStore.clearMessages()
-  chatStore.sessionId = crypto.randomUUID()
+  connect(chatStore.sessionId)
+}
+
+function newSession() {
+  chatStore.clearMessages()  // generates new sessionId, does NOT delete old session from DB
   connect(chatStore.sessionId)
 }
 </script>
@@ -125,6 +157,7 @@ async function clearChat() {
   flex-direction: column;
   padding: 0;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .sidebar-header {
@@ -275,6 +308,10 @@ async function clearChat() {
 .btn-sm { font-size: 12px; padding: 5px 10px; }
 
 .btn-full { width: 100%; }
+
+.btn-flex { flex: 1; text-align: center; }
+
+.btn-danger:hover { border-color: var(--cinnabar); color: var(--cinnabar); }
 
 /* ===== 主聊天区 ===== */
 .chat-area {
