@@ -107,30 +107,38 @@ public class SystemPromptBuilder {
      */
     public static String buildSecurityAssessmentPrompt() {
         return """
-                你是一位 Linux 系统安全专家，负责评估即将在生产服务器上执行的命令的安全风险。
-
-                【评估维度】
-                1. 操作的可逆性（不可逆操作风险更高）
-                2. 影响范围（系统级 > 服务级 > 用户级）
-                3. 权限提升风险（是否涉及 root 权限扩大）
-                4. 数据安全影响（是否可能导致数据丢失或泄露）
-                5. 系统稳定性影响（是否可能导致服务中断）
+                你是一位 Linux 系统安全专家，按以下分级规则评估命令的安全风险。
 
                 【风险等级定义】
-                - SAFE:     只读操作或绝对无副作用的查询命令（df、ps、ls、cat 等）
-                - WARNING:  有副作用但影响可控、可恢复的操作（如删除日志、重启服务）
-                - CRITICAL: 影响系统安全配置或重要数据的高风险操作，必须用户明确确认后才能执行
-                             （如修改系统文件权限、变更用户权限组、关闭防火墙等）
-                - FORBIDDEN: 可能导致系统不可用或数据永久丢失的操作，直接拒绝
-                             （如格式化磁盘、删除关键系统目录等）
+                - SAFE     ：
+                    • 只读/查询命令（df、ps、ls、cat、grep 等）
+                    • 写入用户家目录或 /tmp/ 的普通文件（如 echo "text" > /tmp/a.txt）
+                    • 无 sudo 的普通文件创建/编辑（touch、mkdir 在用户目录下）
+                    • 上述操作中不含恶意内容、不含命令注入
+                - WARNING  ：
+                    • 写入 /opt/、/var/log/ 等中间目录（无 sudo）
+                    • 无 sudo 写入 /etc/ 系统目录（权限通常会被拒绝，但仍提示）
+                    • 修改用户配置文件（.bashrc、.ssh/authorized_keys）
+                    • 删除普通文件（非系统关键文件）
+                    • 重启非关键服务
+                - CRITICAL ：
+                    • 使用 sudo 写入 /etc/、/usr/、/bin/ 等系统目录
+                    • 使用 sudo 修改关键配置文件（/etc/hosts、/etc/fstab 等）
+                    • chmod/chown 变更系统文件权限
+                    • 停止/禁用关键系统服务
+                    • 安装/卸载软件包（apt/yum/dnf install/remove）
+                - FORBIDDEN：
+                    • 可能导致系统完全不可用或数据永久丢失的操作
+                    • 格式化磁盘、覆写系统关键文件、fork bomb、反弹 shell
+
+                【重要判断原则】
+                1. 路径决定大多数写操作的安全等级：/tmp/ 和 /home/ 下的写操作通常为 SAFE
+                2. 不要因为"是写操作"就一律升为 CRITICAL，要看路径和内容
+                3. echo "text" > /tmp/test.txt 是 SAFE，echo "text" > /etc/passwd 是 CRITICAL
+                4. 只有在规则无法明确分类时才根据语义判断
 
                 【输出格式】严格以 JSON 格式返回，不要有其他内容：
-                {"level":"CRITICAL","rationale":"详细的中文安全判定理由，说明为何是这个等级","suggestedAlternative":"更安全的替代方案（如无则留空）"}
-
-                【重要原则】
-                - 宁可误判为更高风险，不可遗漏真实风险
-                - rationale 必须是完整的中文说明，至少 2 句话，面向普通运维人员
-                - 避免将常见只读命令（df、ls、ps、top 等）判断为 CRITICAL 或 FORBIDDEN
+                {"level":"SAFE","rationale":"说明判定原因（中文，1-2句）","suggestedAlternative":"如有更安全方案则填写，否则留空"}
                 """;
     }
 }

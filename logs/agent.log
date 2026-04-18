@@ -28,3 +28,156 @@
 2026-04-18 17:10:00.638 [agent-task-2] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [e89efecb-7ac2-42bb-baa8-00b636db36eb] → /topic/session/e89efecb-7ac2-42bb-baa8-00b636db36eb: type=TEXT
 2026-04-18 17:10:18.913 [http-nio-8080-exec-4] INFO  c.r.cjb_agent.service.os.OSProbeService - 开始探测操作系统环境 [adaa6209-9185-45eb-83fc-41e4276fb458]
 2026-04-18 17:10:19.111 [http-nio-8080-exec-4] INFO  c.r.cjb_agent.service.os.OSProbeService - OS 探测完成 [adaa6209-9185-45eb-83fc-41e4276fb458]: Ubuntu 24.04 | 内核: 6.17.0-20-generic | 架构: x86_64 | 主机: wh-VMware-Virtual-Platform
+2026-04-18 17:16:24.964 [main] INFO  com.ran.cjb_agent.CjbAgentApplication - Starting CjbAgentApplication using Java 21.0.10 with PID 29004 (D:\OS_Agent\OS_Agent\target\classes started by han50 in D:\OS_Agent\OS_Agent)
+2026-04-18 17:16:24.965 [main] DEBUG com.ran.cjb_agent.CjbAgentApplication - Running with Spring Boot v3.5.13, Spring v6.2.17
+2026-04-18 17:16:24.966 [main] INFO  com.ran.cjb_agent.CjbAgentApplication - No active profile set, falling back to 1 default profile: "default"
+2026-04-18 17:16:27.403 [main] INFO  c.r.c.service.config.ModelConfigStore - 从 MySQL 恢复模型配置: model=qwen-plus, baseUrl=https://dashscope.aliyuncs.com/compatible-mode/v1
+2026-04-18 17:16:27.790 [main] INFO  com.ran.cjb_agent.CjbAgentApplication - Started CjbAgentApplication in 3.198 seconds (process running for 3.694)
+2026-04-18 17:16:39.443 [http-nio-8080-exec-9] INFO  c.r.cjb_agent.controller.ChatController - 收到聊天请求 [650c41b4-f29e-459a-abd7-e0e347ee2ed2]: 查询当前磁盘使用情况
+2026-04-18 17:16:39.801 [agent-task-1] INFO  c.r.c.service.agent.AgentOrchestrator - 开始处理消息 [650c41b4-f29e-459a-abd7-e0e347ee2ed2]: 查询当前磁盘使用情况
+2026-04-18 17:16:39.802 [agent-task-1] INFO  c.r.c.service.agent.AgentSessionManager - 新 Session 已创建: 650c41b4-f29e-459a-abd7-e0e347ee2ed2
+2026-04-18 17:16:39.802 [agent-task-1] DEBUG c.r.c.service.agent.AgentSessionManager - Session [650c41b4-f29e-459a-abd7-e0e347ee2ed2] 绑定 SSH 连接: adaa6209-9185-45eb-83fc-41e4276fb458
+2026-04-18 17:16:39.815 [agent-task-1] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [650c41b4-f29e-459a-abd7-e0e347ee2ed2] → /topic/session/650c41b4-f29e-459a-abd7-e0e347ee2ed2: type=NODE_PROGRESS
+2026-04-18 17:16:39.816 [agent-task-1] INFO  c.r.cjb_agent.service.os.OSProbeService - 开始探测操作系统环境 [adaa6209-9185-45eb-83fc-41e4276fb458]
+2026-04-18 17:16:39.817 [agent-task-1] ERROR c.r.cjb_agent.service.os.OSProbeService - OS 探测失败 [adaa6209-9185-45eb-83fc-41e4276fb458]: SSH 连接不存在: adaa6209-9185-45eb-83fc-41e4276fb458，请先添加并测试连接。
+2026-04-18 17:16:39.819 [agent-task-1] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [650c41b4-f29e-459a-abd7-e0e347ee2ed2] → /topic/session/650c41b4-f29e-459a-abd7-e0e347ee2ed2: type=NODE_PROGRESS
+2026-04-18 17:16:39.820 [agent-task-1] INFO  c.r.c.service.agent.AgentOrchestrator - 使用 AiServices 工具调用模式处理 [650c41b4-f29e-459a-abd7-e0e347ee2ed2]
+2026-04-18 17:16:39.830 [agent-task-1] INFO  c.r.c.s.agent.ConversationMemoryStore - 从 MySQL 重建会话记忆 [650c41b4-f29e-459a-abd7-e0e347ee2ed2]: 加载 1 条消息
+2026-04-18 17:16:40.223 [agent-task-1] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [650c41b4-f29e-459a-abd7-e0e347ee2ed2] → /topic/session/650c41b4-f29e-459a-abd7-e0e347ee2ed2: type=NODE_PROGRESS
+2026-04-18 17:16:42.685 [agent-task-1] DEBUG c.ran.cjb_agent.service.tools.DiskTools - 查询磁盘使用情况 [adaa6209-9185-45eb-83fc-41e4276fb458]: df -hT
+2026-04-18 17:16:48.096 [agent-task-1] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [650c41b4-f29e-459a-abd7-e0e347ee2ed2] → /topic/session/650c41b4-f29e-459a-abd7-e0e347ee2ed2: type=TEXT
+2026-04-18 17:17:07.132 [http-nio-8080-exec-2] INFO  c.r.cjb_agent.service.os.OSProbeService - 开始探测操作系统环境 [6dd2abc2-f610-4b97-8c71-cfeef565e775]
+2026-04-18 17:17:07.304 [http-nio-8080-exec-2] INFO  c.r.cjb_agent.service.os.OSProbeService - OS 探测完成 [6dd2abc2-f610-4b97-8c71-cfeef565e775]: Ubuntu 24.04 | 内核: 6.17.0-20-generic | 架构: x86_64 | 主机: wh-VMware-Virtual-Platform
+2026-04-18 17:17:19.343 [http-nio-8080-exec-9] INFO  c.r.cjb_agent.controller.ChatController - 收到聊天请求 [04507992-181f-4b5e-b985-84c53364a677]: 查询当前监听的端口列表
+2026-04-18 17:17:19.365 [agent-task-2] INFO  c.r.c.service.agent.AgentOrchestrator - 开始处理消息 [04507992-181f-4b5e-b985-84c53364a677]: 查询当前监听的端口列表
+2026-04-18 17:17:19.365 [agent-task-2] INFO  c.r.c.service.agent.AgentSessionManager - 新 Session 已创建: 04507992-181f-4b5e-b985-84c53364a677
+2026-04-18 17:17:19.365 [agent-task-2] DEBUG c.r.c.service.agent.AgentSessionManager - Session [04507992-181f-4b5e-b985-84c53364a677] 绑定 SSH 连接: 6dd2abc2-f610-4b97-8c71-cfeef565e775
+2026-04-18 17:17:19.365 [agent-task-2] INFO  c.r.c.service.agent.AgentOrchestrator - 使用 AiServices 工具调用模式处理 [04507992-181f-4b5e-b985-84c53364a677]
+2026-04-18 17:17:19.368 [agent-task-2] INFO  c.r.c.s.agent.ConversationMemoryStore - 从 MySQL 重建会话记忆 [04507992-181f-4b5e-b985-84c53364a677]: 加载 1 条消息
+2026-04-18 17:17:19.448 [agent-task-2] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [04507992-181f-4b5e-b985-84c53364a677] → /topic/session/04507992-181f-4b5e-b985-84c53364a677: type=NODE_PROGRESS
+2026-04-18 17:17:33.594 [agent-task-2] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [04507992-181f-4b5e-b985-84c53364a677] → /topic/session/04507992-181f-4b5e-b985-84c53364a677: type=TEXT
+2026-04-18 18:26:27.833 [MessageBroker-13] INFO  c.r.c.s.agent.ConversationMemoryStore - 会话记忆已清空: 04507992-181f-4b5e-b985-84c53364a677
+2026-04-18 18:26:27.833 [MessageBroker-13] INFO  c.r.c.service.agent.AgentSessionManager - 过期 Session 已清理: 04507992-181f-4b5e-b985-84c53364a677
+2026-04-18 18:26:27.833 [MessageBroker-13] INFO  c.r.c.s.agent.ConversationMemoryStore - 会话记忆已清空: 650c41b4-f29e-459a-abd7-e0e347ee2ed2
+2026-04-18 18:26:27.833 [MessageBroker-13] INFO  c.r.c.service.agent.AgentSessionManager - 过期 Session 已清理: 650c41b4-f29e-459a-abd7-e0e347ee2ed2
+2026-04-18 18:48:12.236 [http-nio-8080-exec-2] INFO  c.r.cjb_agent.controller.ChatController - 收到聊天请求 [04507992-181f-4b5e-b985-84c53364a677]: hi
+2026-04-18 18:48:12.344 [agent-task-3] INFO  c.r.c.service.agent.AgentOrchestrator - 开始处理消息 [04507992-181f-4b5e-b985-84c53364a677]: hi
+2026-04-18 18:48:12.344 [agent-task-3] INFO  c.r.c.service.agent.AgentSessionManager - 新 Session 已创建: 04507992-181f-4b5e-b985-84c53364a677
+2026-04-18 18:48:12.344 [agent-task-3] DEBUG c.r.c.service.agent.AgentSessionManager - Session [04507992-181f-4b5e-b985-84c53364a677] 绑定 SSH 连接: 6dd2abc2-f610-4b97-8c71-cfeef565e775
+2026-04-18 18:48:12.344 [agent-task-3] INFO  c.r.c.service.agent.AgentOrchestrator - 使用 AiServices 工具调用模式处理 [04507992-181f-4b5e-b985-84c53364a677]
+2026-04-18 18:48:12.356 [agent-task-3] INFO  c.r.c.s.agent.ConversationMemoryStore - 从 MySQL 重建会话记忆 [04507992-181f-4b5e-b985-84c53364a677]: 加载 3 条消息
+2026-04-18 18:48:12.542 [agent-task-3] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [04507992-181f-4b5e-b985-84c53364a677] → /topic/session/04507992-181f-4b5e-b985-84c53364a677: type=NODE_PROGRESS
+2026-04-18 18:48:16.868 [agent-task-3] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [04507992-181f-4b5e-b985-84c53364a677] → /topic/session/04507992-181f-4b5e-b985-84c53364a677: type=TEXT
+2026-04-18 19:12:10.024 [http-nio-8080-exec-3] INFO  c.r.cjb_agent.controller.ChatController - 收到聊天请求 [04507992-181f-4b5e-b985-84c53364a677]: 查询磁盘
+2026-04-18 19:12:10.067 [agent-task-4] INFO  c.r.c.service.agent.AgentOrchestrator - 开始处理消息 [04507992-181f-4b5e-b985-84c53364a677]: 查询磁盘
+2026-04-18 19:12:10.067 [agent-task-4] DEBUG c.r.c.service.agent.AgentSessionManager - Session [04507992-181f-4b5e-b985-84c53364a677] 绑定 SSH 连接: 6dd2abc2-f610-4b97-8c71-cfeef565e775
+2026-04-18 19:12:10.067 [agent-task-4] INFO  c.r.c.service.agent.AgentOrchestrator - 使用 AiServices 工具调用模式处理 [04507992-181f-4b5e-b985-84c53364a677]
+2026-04-18 19:12:10.256 [agent-task-4] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [04507992-181f-4b5e-b985-84c53364a677] → /topic/session/04507992-181f-4b5e-b985-84c53364a677: type=NODE_PROGRESS
+2026-04-18 19:12:13.227 [agent-task-4] DEBUG c.ran.cjb_agent.service.tools.DiskTools - 查询磁盘使用情况 [6dd2abc2-f610-4b97-8c71-cfeef565e775]: df -hT
+2026-04-18 19:12:23.786 [agent-task-4] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [04507992-181f-4b5e-b985-84c53364a677] → /topic/session/04507992-181f-4b5e-b985-84c53364a677: type=TEXT
+2026-04-18 19:29:02.715 [http-nio-8080-exec-5] INFO  c.r.cjb_agent.controller.ChatController - 收到聊天请求 [04507992-181f-4b5e-b985-84c53364a677]: 查询进程
+2026-04-18 19:29:02.765 [agent-task-5] INFO  c.r.c.service.agent.AgentOrchestrator - 开始处理消息 [04507992-181f-4b5e-b985-84c53364a677]: 查询进程
+2026-04-18 19:29:02.765 [agent-task-5] DEBUG c.r.c.service.agent.AgentSessionManager - Session [04507992-181f-4b5e-b985-84c53364a677] 绑定 SSH 连接: 6dd2abc2-f610-4b97-8c71-cfeef565e775
+2026-04-18 19:29:02.765 [agent-task-5] INFO  c.r.c.service.agent.AgentOrchestrator - 使用 AiServices 工具调用模式处理 [04507992-181f-4b5e-b985-84c53364a677]
+2026-04-18 19:29:03.009 [agent-task-5] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [04507992-181f-4b5e-b985-84c53364a677] → /topic/session/04507992-181f-4b5e-b985-84c53364a677: type=NODE_PROGRESS
+2026-04-18 19:29:27.700 [agent-task-5] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [04507992-181f-4b5e-b985-84c53364a677] → /topic/session/04507992-181f-4b5e-b985-84c53364a677: type=TEXT
+2026-04-18 19:30:06.675 [main] INFO  com.ran.cjb_agent.CjbAgentApplication - Starting CjbAgentApplication using Java 21.0.10 with PID 35872 (D:\OS_Agent\OS_Agent\target\classes started by han50 in D:\OS_Agent\OS_Agent)
+2026-04-18 19:30:06.676 [main] DEBUG com.ran.cjb_agent.CjbAgentApplication - Running with Spring Boot v3.5.13, Spring v6.2.17
+2026-04-18 19:30:06.677 [main] INFO  com.ran.cjb_agent.CjbAgentApplication - No active profile set, falling back to 1 default profile: "default"
+2026-04-18 19:30:10.253 [main] INFO  c.r.c.service.config.ModelConfigStore - 从 MySQL 恢复模型配置: model=qwen-plus, baseUrl=https://dashscope.aliyuncs.com/compatible-mode/v1
+2026-04-18 19:30:10.908 [main] INFO  com.ran.cjb_agent.CjbAgentApplication - Started CjbAgentApplication in 4.666 seconds (process running for 5.277)
+2026-04-18 19:30:22.199 [http-nio-8080-exec-5] INFO  c.r.cjb_agent.controller.ChatController - 收到聊天请求 [e607c377-4ec9-4627-9a96-5b0cd6dbc988]: 查询当前磁盘使用情况
+2026-04-18 19:30:22.753 [agent-task-1] INFO  c.r.c.service.agent.AgentOrchestrator - 开始处理消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988]: 查询当前磁盘使用情况
+2026-04-18 19:30:22.756 [agent-task-1] INFO  c.r.c.service.agent.AgentSessionManager - 新 Session 已创建: e607c377-4ec9-4627-9a96-5b0cd6dbc988
+2026-04-18 19:30:22.756 [agent-task-1] DEBUG c.r.c.service.agent.AgentSessionManager - Session [e607c377-4ec9-4627-9a96-5b0cd6dbc988] 绑定 SSH 连接: 6dd2abc2-f610-4b97-8c71-cfeef565e775
+2026-04-18 19:30:22.766 [agent-task-1] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988] → /topic/session/e607c377-4ec9-4627-9a96-5b0cd6dbc988: type=NODE_PROGRESS
+2026-04-18 19:30:22.767 [agent-task-1] INFO  c.r.cjb_agent.service.os.OSProbeService - 开始探测操作系统环境 [6dd2abc2-f610-4b97-8c71-cfeef565e775]
+2026-04-18 19:30:22.767 [agent-task-1] ERROR c.r.cjb_agent.service.os.OSProbeService - OS 探测失败 [6dd2abc2-f610-4b97-8c71-cfeef565e775]: SSH 连接不存在: 6dd2abc2-f610-4b97-8c71-cfeef565e775，请先添加并测试连接。
+2026-04-18 19:30:22.769 [agent-task-1] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988] → /topic/session/e607c377-4ec9-4627-9a96-5b0cd6dbc988: type=NODE_PROGRESS
+2026-04-18 19:30:22.770 [agent-task-1] INFO  c.r.c.service.agent.AgentOrchestrator - 使用 AiServices 工具调用模式处理 [e607c377-4ec9-4627-9a96-5b0cd6dbc988]
+2026-04-18 19:30:22.780 [agent-task-1] INFO  c.r.c.s.agent.ConversationMemoryStore - 从 MySQL 重建会话记忆 [e607c377-4ec9-4627-9a96-5b0cd6dbc988]: 加载 1 条消息
+2026-04-18 19:30:27.195 [agent-task-1] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988] → /topic/session/e607c377-4ec9-4627-9a96-5b0cd6dbc988: type=THINKING
+2026-04-18 19:30:29.723 [agent-task-1] DEBUG c.ran.cjb_agent.service.tools.DiskTools - 查询磁盘使用情况 [6dd2abc2-f610-4b97-8c71-cfeef565e775]: df -hT
+2026-04-18 19:30:34.201 [agent-task-1] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988] → /topic/session/e607c377-4ec9-4627-9a96-5b0cd6dbc988: type=TEXT
+2026-04-18 19:30:54.048 [http-nio-8080-exec-8] INFO  c.r.cjb_agent.service.os.OSProbeService - 开始探测操作系统环境 [d2e7f8e6-9014-46d6-bc38-870b49e08c22]
+2026-04-18 19:30:54.270 [http-nio-8080-exec-8] INFO  c.r.cjb_agent.service.os.OSProbeService - OS 探测完成 [d2e7f8e6-9014-46d6-bc38-870b49e08c22]: Ubuntu 24.04 | 内核: 6.17.0-20-generic | 架构: x86_64 | 主机: wh-VMware-Virtual-Platform
+2026-04-18 19:41:10.062 [http-nio-8080-exec-10] INFO  c.r.cjb_agent.controller.ChatController - 收到聊天请求 [e607c377-4ec9-4627-9a96-5b0cd6dbc988]: 查询当前磁盘使用情况
+2026-04-18 19:41:10.118 [agent-task-2] INFO  c.r.c.service.agent.AgentOrchestrator - 开始处理消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988]: 查询当前磁盘使用情况
+2026-04-18 19:41:10.118 [agent-task-2] DEBUG c.r.c.service.agent.AgentSessionManager - Session [e607c377-4ec9-4627-9a96-5b0cd6dbc988] 绑定 SSH 连接: d2e7f8e6-9014-46d6-bc38-870b49e08c22
+2026-04-18 19:41:10.118 [agent-task-2] INFO  c.r.c.service.agent.AgentOrchestrator - 使用 AiServices 工具调用模式处理 [e607c377-4ec9-4627-9a96-5b0cd6dbc988]
+2026-04-18 19:41:13.651 [agent-task-2] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988] → /topic/session/e607c377-4ec9-4627-9a96-5b0cd6dbc988: type=THINKING
+2026-04-18 19:41:16.387 [agent-task-2] DEBUG c.ran.cjb_agent.service.tools.DiskTools - 查询磁盘使用情况 [d2e7f8e6-9014-46d6-bc38-870b49e08c22]: df -hT
+2026-04-18 19:41:26.013 [agent-task-2] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988] → /topic/session/e607c377-4ec9-4627-9a96-5b0cd6dbc988: type=TEXT
+2026-04-18 19:49:35.096 [http-nio-8080-exec-1] INFO  c.r.cjb_agent.controller.ChatController - 收到聊天请求 [e607c377-4ec9-4627-9a96-5b0cd6dbc988]: 在当前目录创建文件 test.txt，写入内容 “Hello OS Agent”
+2026-04-18 19:49:35.110 [agent-task-3] INFO  c.r.c.service.agent.AgentOrchestrator - 开始处理消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988]: 在当前目录创建文件 test.txt，写入内容 “Hello OS Agent”
+2026-04-18 19:49:35.110 [agent-task-3] DEBUG c.r.c.service.agent.AgentSessionManager - Session [e607c377-4ec9-4627-9a96-5b0cd6dbc988] 绑定 SSH 连接: d2e7f8e6-9014-46d6-bc38-870b49e08c22
+2026-04-18 19:49:35.110 [agent-task-3] INFO  c.r.c.service.agent.AgentOrchestrator - 使用 AiServices 工具调用模式处理 [e607c377-4ec9-4627-9a96-5b0cd6dbc988]
+2026-04-18 19:49:38.743 [agent-task-3] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988] → /topic/session/e607c377-4ec9-4627-9a96-5b0cd6dbc988: type=THINKING
+2026-04-18 19:50:02.369 [agent-task-3] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988] → /topic/session/e607c377-4ec9-4627-9a96-5b0cd6dbc988: type=TEXT
+2026-04-18 20:02:43.934 [http-nio-8080-exec-2] INFO  c.r.cjb_agent.controller.ChatController - 收到聊天请求 [e607c377-4ec9-4627-9a96-5b0cd6dbc988]: 删除test1.c文件
+2026-04-18 20:02:43.946 [agent-task-4] INFO  c.r.c.service.agent.AgentOrchestrator - 开始处理消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988]: 删除test1.c文件
+2026-04-18 20:02:43.946 [agent-task-4] DEBUG c.r.c.service.agent.AgentSessionManager - Session [e607c377-4ec9-4627-9a96-5b0cd6dbc988] 绑定 SSH 连接: d2e7f8e6-9014-46d6-bc38-870b49e08c22
+2026-04-18 20:02:43.946 [agent-task-4] INFO  c.r.c.service.agent.AgentOrchestrator - 使用 AiServices 工具调用模式处理 [e607c377-4ec9-4627-9a96-5b0cd6dbc988]
+2026-04-18 20:02:47.203 [agent-task-4] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988] → /topic/session/e607c377-4ec9-4627-9a96-5b0cd6dbc988: type=THINKING
+2026-04-18 20:03:06.630 [agent-task-4] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988] → /topic/session/e607c377-4ec9-4627-9a96-5b0cd6dbc988: type=TEXT
+2026-04-18 20:05:02.610 [http-nio-8080-exec-4] INFO  c.r.cjb_agent.controller.ChatController - 收到聊天请求 [e607c377-4ec9-4627-9a96-5b0cd6dbc988]: 删除成功了吗
+2026-04-18 20:05:02.622 [agent-task-5] INFO  c.r.c.service.agent.AgentOrchestrator - 开始处理消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988]: 删除成功了吗
+2026-04-18 20:05:02.622 [agent-task-5] DEBUG c.r.c.service.agent.AgentSessionManager - Session [e607c377-4ec9-4627-9a96-5b0cd6dbc988] 绑定 SSH 连接: d2e7f8e6-9014-46d6-bc38-870b49e08c22
+2026-04-18 20:05:02.622 [agent-task-5] INFO  c.r.c.service.agent.AgentOrchestrator - 使用 AiServices 工具调用模式处理 [e607c377-4ec9-4627-9a96-5b0cd6dbc988]
+2026-04-18 20:05:07.049 [agent-task-5] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988] → /topic/session/e607c377-4ec9-4627-9a96-5b0cd6dbc988: type=THINKING
+2026-04-18 20:05:18.527 [agent-task-5] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988] → /topic/session/e607c377-4ec9-4627-9a96-5b0cd6dbc988: type=TEXT
+2026-04-18 20:13:42.131 [http-nio-8080-exec-3] INFO  c.r.cjb_agent.controller.ChatController - 收到聊天请求 [e607c377-4ec9-4627-9a96-5b0cd6dbc988]: 创建用户 testuser，设置密码 123456，为它创建家目录，修改家目录权限为 testuser 所有，切换到该目录，创建文件 readme.txt
+2026-04-18 20:13:42.149 [agent-task-1] INFO  c.r.c.service.agent.AgentOrchestrator - 开始处理消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988]: 创建用户 testuser，设置密码 123456，为它创建家目录，修改家目录权限为 testuser 所有，切换到该目录，创建文件 readme.txt
+2026-04-18 20:13:42.151 [agent-task-1] DEBUG c.r.c.service.agent.AgentSessionManager - Session [e607c377-4ec9-4627-9a96-5b0cd6dbc988] 绑定 SSH 连接: d2e7f8e6-9014-46d6-bc38-870b49e08c22
+2026-04-18 20:13:42.151 [agent-task-1] INFO  c.r.c.service.agent.AgentOrchestrator - 使用 AiServices 工具调用模式处理 [e607c377-4ec9-4627-9a96-5b0cd6dbc988]
+2026-04-18 20:13:46.785 [agent-task-1] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988] → /topic/session/e607c377-4ec9-4627-9a96-5b0cd6dbc988: type=THINKING
+2026-04-18 20:14:44.587 [agent-task-1] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988] → /topic/session/e607c377-4ec9-4627-9a96-5b0cd6dbc988: type=TEXT
+2026-04-18 20:24:40.864 [http-nio-8080-exec-9] INFO  c.r.cjb_agent.controller.ChatController - 收到聊天请求 [e607c377-4ec9-4627-9a96-5b0cd6dbc988]: 看看当前内存使用情况
+2026-04-18 20:24:40.881 [agent-task-2] INFO  c.r.c.service.agent.AgentOrchestrator - 开始处理消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988]: 看看当前内存使用情况
+2026-04-18 20:24:40.881 [agent-task-2] DEBUG c.r.c.service.agent.AgentSessionManager - Session [e607c377-4ec9-4627-9a96-5b0cd6dbc988] 绑定 SSH 连接: d2e7f8e6-9014-46d6-bc38-870b49e08c22
+2026-04-18 20:24:40.881 [agent-task-2] INFO  c.r.c.service.agent.AgentOrchestrator - 使用 AiServices 工具调用模式处理 [e607c377-4ec9-4627-9a96-5b0cd6dbc988]
+2026-04-18 20:24:44.447 [agent-task-2] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988] → /topic/session/e607c377-4ec9-4627-9a96-5b0cd6dbc988: type=THINKING
+2026-04-18 20:24:58.969 [agent-task-2] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988] → /topic/session/e607c377-4ec9-4627-9a96-5b0cd6dbc988: type=TEXT
+2026-04-18 20:25:02.889 [http-nio-8080-exec-7] INFO  c.r.cjb_agent.controller.ChatController - 收到聊天请求 [e607c377-4ec9-4627-9a96-5b0cd6dbc988]: 再看看CPU
+2026-04-18 20:25:02.900 [agent-task-3] INFO  c.r.c.service.agent.AgentOrchestrator - 开始处理消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988]: 再看看CPU
+2026-04-18 20:25:02.900 [agent-task-3] DEBUG c.r.c.service.agent.AgentSessionManager - Session [e607c377-4ec9-4627-9a96-5b0cd6dbc988] 绑定 SSH 连接: d2e7f8e6-9014-46d6-bc38-870b49e08c22
+2026-04-18 20:25:02.900 [agent-task-3] INFO  c.r.c.service.agent.AgentOrchestrator - 使用 AiServices 工具调用模式处理 [e607c377-4ec9-4627-9a96-5b0cd6dbc988]
+2026-04-18 20:25:06.596 [agent-task-3] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988] → /topic/session/e607c377-4ec9-4627-9a96-5b0cd6dbc988: type=THINKING
+2026-04-18 20:25:21.443 [agent-task-3] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988] → /topic/session/e607c377-4ec9-4627-9a96-5b0cd6dbc988: type=TEXT
+2026-04-18 20:25:59.220 [http-nio-8080-exec-5] INFO  c.r.cjb_agent.controller.ChatController - 收到聊天请求 [e607c377-4ec9-4627-9a96-5b0cd6dbc988]: 帮我清理一下他
+2026-04-18 20:25:59.230 [agent-task-4] INFO  c.r.c.service.agent.AgentOrchestrator - 开始处理消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988]: 帮我清理一下他
+2026-04-18 20:25:59.230 [agent-task-4] DEBUG c.r.c.service.agent.AgentSessionManager - Session [e607c377-4ec9-4627-9a96-5b0cd6dbc988] 绑定 SSH 连接: d2e7f8e6-9014-46d6-bc38-870b49e08c22
+2026-04-18 20:25:59.230 [agent-task-4] INFO  c.r.c.service.agent.AgentOrchestrator - 使用 AiServices 工具调用模式处理 [e607c377-4ec9-4627-9a96-5b0cd6dbc988]
+2026-04-18 20:26:04.668 [agent-task-4] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988] → /topic/session/e607c377-4ec9-4627-9a96-5b0cd6dbc988: type=THINKING
+2026-04-18 20:26:33.925 [agent-task-4] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988] → /topic/session/e607c377-4ec9-4627-9a96-5b0cd6dbc988: type=TEXT
+2026-04-18 20:29:43.293 [main] INFO  com.ran.cjb_agent.CjbAgentApplication - Starting CjbAgentApplication using Java 21.0.10 with PID 18480 (D:\OS_Agent\OS_Agent\target\classes started by han50 in D:\OS_Agent\OS_Agent)
+2026-04-18 20:29:43.294 [main] DEBUG com.ran.cjb_agent.CjbAgentApplication - Running with Spring Boot v3.5.13, Spring v6.2.17
+2026-04-18 20:29:43.294 [main] INFO  com.ran.cjb_agent.CjbAgentApplication - No active profile set, falling back to 1 default profile: "default"
+2026-04-18 20:29:47.098 [main] INFO  c.r.c.service.config.ModelConfigStore - 从 MySQL 恢复模型配置: model=qwen-plus, baseUrl=https://dashscope.aliyuncs.com/compatible-mode/v1
+2026-04-18 20:29:47.769 [main] INFO  com.ran.cjb_agent.CjbAgentApplication - Started CjbAgentApplication in 4.931 seconds (process running for 5.528)
+2026-04-18 20:30:11.580 [http-nio-8080-exec-4] INFO  c.r.cjb_agent.controller.ChatController - 收到聊天请求 [e607c377-4ec9-4627-9a96-5b0cd6dbc988]: 在当前目录创建文件 test2.txt，写入内容 “Hello OS Agent”
+2026-04-18 20:30:11.946 [agent-task-1] INFO  c.r.c.service.agent.AgentOrchestrator - 开始处理消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988]: 在当前目录创建文件 test2.txt，写入内容 “Hello OS Agent”
+2026-04-18 20:30:11.947 [agent-task-1] INFO  c.r.c.service.agent.AgentSessionManager - 新 Session 已创建: e607c377-4ec9-4627-9a96-5b0cd6dbc988
+2026-04-18 20:30:11.947 [agent-task-1] DEBUG c.r.c.service.agent.AgentSessionManager - Session [e607c377-4ec9-4627-9a96-5b0cd6dbc988] 绑定 SSH 连接: d2e7f8e6-9014-46d6-bc38-870b49e08c22
+2026-04-18 20:30:11.969 [agent-task-1] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988] → /topic/session/e607c377-4ec9-4627-9a96-5b0cd6dbc988: type=NODE_PROGRESS
+2026-04-18 20:30:11.971 [agent-task-1] INFO  c.r.cjb_agent.service.os.OSProbeService - 开始探测操作系统环境 [d2e7f8e6-9014-46d6-bc38-870b49e08c22]
+2026-04-18 20:30:11.971 [agent-task-1] ERROR c.r.cjb_agent.service.os.OSProbeService - OS 探测失败 [d2e7f8e6-9014-46d6-bc38-870b49e08c22]: SSH 连接不存在: d2e7f8e6-9014-46d6-bc38-870b49e08c22，请先添加并测试连接。
+2026-04-18 20:30:11.972 [agent-task-1] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988] → /topic/session/e607c377-4ec9-4627-9a96-5b0cd6dbc988: type=NODE_PROGRESS
+2026-04-18 20:30:11.972 [agent-task-1] INFO  c.r.c.service.agent.AgentOrchestrator - 使用 AiServices 工具调用模式处理 [e607c377-4ec9-4627-9a96-5b0cd6dbc988]
+2026-04-18 20:30:11.995 [agent-task-1] INFO  c.r.c.s.agent.ConversationMemoryStore - 从 MySQL 重建会话记忆 [e607c377-4ec9-4627-9a96-5b0cd6dbc988]: 加载 28 条消息
+2026-04-18 20:30:15.964 [agent-task-1] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988] → /topic/session/e607c377-4ec9-4627-9a96-5b0cd6dbc988: type=THINKING
+2026-04-18 20:30:31.281 [agent-task-1] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988] → /topic/session/e607c377-4ec9-4627-9a96-5b0cd6dbc988: type=TEXT
+2026-04-18 20:31:15.353 [http-nio-8080-exec-6] INFO  c.r.cjb_agent.service.os.OSProbeService - 开始探测操作系统环境 [2df93de9-63a3-4562-b57c-0b0758ec3cc3]
+2026-04-18 20:31:15.558 [http-nio-8080-exec-6] INFO  c.r.cjb_agent.service.os.OSProbeService - OS 探测完成 [2df93de9-63a3-4562-b57c-0b0758ec3cc3]: Ubuntu 24.04 | 内核: 6.17.0-20-generic | 架构: x86_64 | 主机: wh-VMware-Virtual-Platform
+2026-04-18 20:31:22.909 [http-nio-8080-exec-5] INFO  c.r.cjb_agent.controller.ChatController - 收到聊天请求 [e607c377-4ec9-4627-9a96-5b0cd6dbc988]: 在当前目录创建文件 test2.txt，写入内容 “Hello OS Agent”
+2026-04-18 20:31:22.925 [agent-task-2] INFO  c.r.c.service.agent.AgentOrchestrator - 开始处理消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988]: 在当前目录创建文件 test2.txt，写入内容 “Hello OS Agent”
+2026-04-18 20:31:22.926 [agent-task-2] DEBUG c.r.c.service.agent.AgentSessionManager - Session [e607c377-4ec9-4627-9a96-5b0cd6dbc988] 绑定 SSH 连接: 2df93de9-63a3-4562-b57c-0b0758ec3cc3
+2026-04-18 20:31:22.926 [agent-task-2] INFO  c.r.c.service.agent.AgentOrchestrator - 使用 AiServices 工具调用模式处理 [e607c377-4ec9-4627-9a96-5b0cd6dbc988]
+2026-04-18 20:31:26.509 [agent-task-2] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988] → /topic/session/e607c377-4ec9-4627-9a96-5b0cd6dbc988: type=THINKING
+2026-04-18 20:31:37.442 [agent-task-2] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988] → /topic/session/e607c377-4ec9-4627-9a96-5b0cd6dbc988: type=TEXT
+2026-04-18 20:32:16.128 [http-nio-8080-exec-8] INFO  c.r.cjb_agent.controller.ChatController - 收到聊天请求 [e607c377-4ec9-4627-9a96-5b0cd6dbc988]: 你给我执行
+2026-04-18 20:32:16.145 [agent-task-3] INFO  c.r.c.service.agent.AgentOrchestrator - 开始处理消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988]: 你给我执行
+2026-04-18 20:32:16.145 [agent-task-3] DEBUG c.r.c.service.agent.AgentSessionManager - Session [e607c377-4ec9-4627-9a96-5b0cd6dbc988] 绑定 SSH 连接: 2df93de9-63a3-4562-b57c-0b0758ec3cc3
+2026-04-18 20:32:16.145 [agent-task-3] INFO  c.r.c.service.agent.AgentOrchestrator - 使用 AiServices 工具调用模式处理 [e607c377-4ec9-4627-9a96-5b0cd6dbc988]
+2026-04-18 20:32:20.923 [agent-task-3] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988] → /topic/session/e607c377-4ec9-4627-9a96-5b0cd6dbc988: type=THINKING
+2026-04-18 20:32:31.811 [agent-task-3] DEBUG c.r.c.websocket.StreamingResponseEmitter - 推送消息 [e607c377-4ec9-4627-9a96-5b0cd6dbc988] → /topic/session/e607c377-4ec9-4627-9a96-5b0cd6dbc988: type=TEXT

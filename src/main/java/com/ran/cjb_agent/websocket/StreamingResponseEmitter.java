@@ -26,6 +26,21 @@ public class StreamingResponseEmitter {
     private static final String SESSION_TOPIC_PREFIX = "/topic/session/";
 
     /**
+     * 推送 Agent 意图推理过程
+     * content = markdown 格式的推理步骤列表
+     * command = 最终选定的 Shell 命令
+     */
+    public void pushThinking(String sessionId, String content, String command) {
+        push(sessionId, ChatResponse.builder()
+                .type(MessageType.THINKING)
+                .sessionId(sessionId)
+                .content(content)
+                .command(command)
+                .finished(true)
+                .build());
+    }
+
+    /**
      * 推送普通文本消息
      */
     public void pushText(String sessionId, String content) {

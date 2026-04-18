@@ -1,5 +1,7 @@
 package com.ran.cjb_agent.service.agent;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ran.cjb_agent.agent.OsAssistant;
 import com.ran.cjb_agent.agent.graph.AgentState;
 import com.ran.cjb_agent.agent.graph.OsAgentGraph;
@@ -10,6 +12,7 @@ import com.ran.cjb_agent.service.config.ModelConfigStore;
 import com.ran.cjb_agent.service.os.OSProbeService;
 import com.ran.cjb_agent.service.os.OsProfileCache;
 import com.ran.cjb_agent.service.os.SystemPromptBuilder;
+import com.ran.cjb_agent.service.log.AgentInteractionLogger;
 import com.ran.cjb_agent.service.tools.*;
 import com.ran.cjb_agent.websocket.StreamingResponseEmitter;
 import dev.langchain4j.memory.ChatMemory;
@@ -47,6 +50,7 @@ public class AgentOrchestrator {
     private final ModelConfigStore modelConfigStore;
     private final StreamingResponseEmitter emitter;
     private final OsAgentGraph osAgentGraph;
+    private final AgentInteractionLogger interactionLogger;
 
     // LangChain4j @Tool 工具类
     private final DiskTools diskTools;
@@ -143,12 +147,83 @@ public class AgentOrchestrator {
 
         try {
             String connId = sshConnectionId != null ? sshConnectionId : "";
-            emitter.pushNodeProgress(sessionId, "thinking", "🤔 正在分析指令并执行...");
+
+            // Phase 1: generate and push thinking process + log it
+            pushThinkingForSimpleTask(sessionId, userMessage, profile);
+
+            // Phase 2: execute with tool calling (blocking, reliable)
             String result = assistant.chat(connId, userMessage);
             emitter.pushText(sessionId, result);
+
+            // Flush interaction log (AiServices has no separate ExecutionNode)
+            interactionLogger.flush(sessionId, result);
         } catch (Exception e) {
             log.error("AiServices 执行失败 [{}]: {}", sessionId, e.getMessage());
             emitter.pushError(sessionId, "执行失败：" + e.getMessage());
+        }
+    }
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    private static final String THINKING_PROMPT = """
+            分析以下 Linux 运维操作请求，推理意图并预估执行方案。
+
+            用户请求：%s
+            目标系统：%s %s
+
+            请用 4 个步骤进行推理分析（每步一句话，用中文），并给出预计使用的主要命令。
+
+            严格按以下 JSON 输出（不要包含任何其他内容，不要加 markdown 代码块）：
+            {
+              "reasoning": [
+                "提取动作：...",
+                "操作对象：...",
+                "核心意图：...",
+                "适配方案：..."
+              ],
+              "command": "预计主要命令"
+            }
+            """;
+
+    private void pushThinkingForSimpleTask(String sessionId, String userMessage, OsProfile profile) {
+        try {
+            String distro = (profile != null && profile.isProbeSuccess())
+                    ? profile.getDistro().getDisplayName() : "Linux";
+            String version = (profile != null && profile.isProbeSuccess())
+                    ? profile.getVersion() : "";
+
+            String prompt = String.format(THINKING_PROMPT, userMessage, distro, version);
+            ChatLanguageModel model = buildCurrentModel();
+            String raw = model.generate(prompt).trim();
+
+            // Extract JSON
+            String cleaned = raw.replaceAll("```(?:json)?\\n?", "").replaceAll("```", "").trim();
+            java.util.regex.Matcher m = java.util.regex.Pattern
+                    .compile("\\{[\\s\\S]*}", java.util.regex.Pattern.DOTALL).matcher(cleaned);
+
+            java.util.List<String> steps = new java.util.ArrayList<>();
+            String command = "";
+
+            if (m.find()) {
+                JsonNode node = OBJECT_MAPPER.readTree(m.group());
+                if (node.has("reasoning") && node.get("reasoning").isArray()) {
+                    node.get("reasoning").forEach(r -> steps.add(r.asText()));
+                }
+                if (node.has("command")) command = node.get("command").asText().trim();
+            }
+
+            if (steps.isEmpty()) steps.add("正在分析：" + userMessage);
+
+            StringBuilder content = new StringBuilder("**意图理解过程：**\n");
+            steps.forEach(s -> content.append("- ").append(s).append("\n"));
+
+            emitter.pushThinking(sessionId, content.toString().stripTrailing(), command);
+
+            // Record in structured interaction log
+            interactionLogger.recordThinking(sessionId, steps, command);
+        } catch (Exception e) {
+            log.warn("生成思考过程失败 [{}]: {}", sessionId, e.getMessage());
+            // Non-fatal — continue without thinking
         }
     }
 

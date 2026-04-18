@@ -4,6 +4,7 @@ import com.ran.cjb_agent.model.dto.ChatRequest;
 import com.ran.cjb_agent.model.entity.ChatMessageEntity;
 import com.ran.cjb_agent.service.agent.AgentOrchestrator;
 import com.ran.cjb_agent.service.agent.AgentSessionManager;
+import com.ran.cjb_agent.service.log.AgentInteractionLogger;
 import com.ran.cjb_agent.service.persistence.ChatHistoryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +28,7 @@ public class ChatController {
     private final AgentOrchestrator agentOrchestrator;
     private final AgentSessionManager sessionManager;
     private final ChatHistoryService chatHistoryService;
+    private final AgentInteractionLogger interactionLogger;
 
     /**
      * 发送消息给 Agent
@@ -41,8 +43,9 @@ public class ChatController {
 
         log.info("收到聊天请求 [{}]: {}", sessionId, request.getMessage());
 
-        // 持久化用户消息
+        // 持久化用户消息 + 开始结构化日志记录
         chatHistoryService.saveUserMessage(sessionId, request.getMessage());
+        interactionLogger.begin(sessionId, request.getMessage());
 
         // 异步处理（@Async，立即返回）
         agentOrchestrator.processMessageAsync(
@@ -101,6 +104,7 @@ public class ChatController {
     public ResponseEntity<Map<String, String>> clearSession(@PathVariable String sessionId) {
         sessionManager.remove(sessionId);
         chatHistoryService.clearHistory(sessionId);
+        interactionLogger.remove(sessionId);
         return ResponseEntity.ok(Map.of(
                 "message", "会话记忆已清空，下次对话将重新开始。"
         ));

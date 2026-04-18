@@ -35,56 +35,68 @@ public class SecurityCheckNode {
         String command = state.getCurrentCommand();
         log.info("安全检查节点 [{}]: {}", state.getSessionId(), command);
         emitter.pushNodeProgress(state.getSessionId(), "security_check", "🔍 正在进行安全评估...");
-
         state.setCurrentNode("security_check");
 
-        // ===== 第一道：正则兜底（绝对禁止，快速拦截）=====
+        // ══ 第1层：绝对禁止（系统毁灭性操作）══════════════════════════
         if (riskRuleEngine.isAbsoluteForbidden(command)) {
-            String rationale = riskRuleEngine.generateForbiddenRationale(command);
-            RiskAssessment assessment = RiskAssessment.forbidden(command, rationale);
-            state.setRiskAssessment(assessment);
-            state.setRiskLevel(RiskLevel.FORBIDDEN);
-            log.warn("安全检查：绝对禁止指令 [{}]: {}", state.getSessionId(), command);
-            return state;
+            return applyAssessment(state, RiskAssessment.forbidden(
+                    command, riskRuleEngine.generateForbiddenRationale(command)), "绝对禁止");
         }
 
-        // ===== 只读命令快速放行（节省 LLM Token）=====
+        // ══ 第2层：命令注入 / 恶意内容特征 ═══════════════════════════
+        if (riskRuleEngine.isCommandInjection(command)) {
+            return applyAssessment(state, RiskAssessment.forbidden(command,
+                    "命令中包含命令注入特征（`;`、反弹 Shell、挖矿脚本等恶意模式），" +
+                    "已识别为安全威胁，拒绝执行。请使用安全的等效命令替代。"), "命令注入");
+        }
+
+        // ══ 第3层：只读命令白名单 ══════════════════════════════════════
         if (riskRuleEngine.isClearlyReadOnly(command)) {
-            state.setRiskAssessment(RiskAssessment.safe(command));
-            state.setRiskLevel(RiskLevel.SAFE);
-            log.debug("安全检查：只读命令直接放行 [{}]: {}", state.getSessionId(), command);
-            return state;
+            return applyAssessment(state, RiskAssessment.safe(command), "只读放行");
         }
 
-        // ===== 第二道：LLM 语义评估（保留 AI 自主理解）=====
+        // ══ 第4层：写操作路径分析（核心新逻辑）══════════════════════
+        if (riskRuleEngine.isWriteOperation(command)) {
+            RiskAssessment pathAssessment = riskRuleEngine.assessByPathAndContent(command);
+            if (pathAssessment != null) {
+                emitter.pushNodeProgress(state.getSessionId(), "security_check",
+                        String.format("✅ 路径分析完成，风险等级：%s", pathAssessment.getLevel().getDisplayName()));
+                return applyAssessment(state, pathAssessment, "路径分析");
+            }
+            // 路径不明确，降级交 LLM
+        }
+
+        // ══ 第5层：LLM 语义评估（兜底）══════════════════════════════
         try {
-            String context = String.format(
-                    "用户意图：%s\n待执行命令：%s",
-                    state.getCurrentTaskDescription(), command
-            );
+            String context = String.format("用户意图：%s\n待执行命令：%s",
+                    state.getCurrentTaskDescription(), command);
 
             ChatLanguageModel model = buildModel();
-            String systemPrompt = SystemPromptBuilder.buildSecurityAssessmentPrompt();
             String llmResponse = model.generate(
-                    dev.langchain4j.data.message.SystemMessage.from(systemPrompt),
+                    dev.langchain4j.data.message.SystemMessage.from(
+                            SystemPromptBuilder.buildSecurityAssessmentPrompt()),
                     dev.langchain4j.data.message.UserMessage.from(context)
             ).content().text();
 
             RiskAssessment assessment = riskRuleEngine.parseFromLlmJson(command, llmResponse);
-            state.setRiskAssessment(assessment);
-            state.setRiskLevel(assessment.getLevel());
-
-            log.info("安全检查完成 [{}]: {} → {}", state.getSessionId(), command, assessment.getLevel());
+            log.info("LLM 安全评估完成 [{}]: {} → {}", state.getSessionId(), command, assessment.getLevel());
             emitter.pushNodeProgress(state.getSessionId(), "security_check",
                     String.format("✅ 安全评估完成，风险等级：%s", assessment.getLevel().getDisplayName()));
+            return applyAssessment(state, assessment, "LLM评估");
 
         } catch (Exception e) {
             log.error("LLM 安全评估失败 [{}]: {}", state.getSessionId(), e.getMessage());
-            // 评估失败时保守处理，降级为 WARNING
-            state.setRiskAssessment(RiskAssessment.warning(command, "安全评估服务暂时不可用，建议人工确认后执行。"));
-            state.setRiskLevel(RiskLevel.WARNING);
+            return applyAssessment(state,
+                    RiskAssessment.warning(command, "安全评估服务暂时不可用，建议人工确认后执行。"),
+                    "LLM失败降级");
         }
+    }
 
+    private AgentState applyAssessment(AgentState state, RiskAssessment assessment, String source) {
+        state.setRiskAssessment(assessment);
+        state.setRiskLevel(assessment.getLevel());
+        log.info("安全检查结果 [{}][{}]: {} → {}", state.getSessionId(), source,
+                state.getCurrentCommand(), assessment.getLevel());
         return state;
     }
 

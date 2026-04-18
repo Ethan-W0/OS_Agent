@@ -38,6 +38,26 @@
     </encoder>
   </appender>
 
+  <!-- 交互结构化日志（纯内容，无时间戳前缀） -->
+  <appender name="INTERACTION_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${LOG_PATH}/interaction.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>${LOG_PATH}/interaction.%d{yyyy-MM-dd}.log</fileNamePattern>
+      <maxHistory>90</maxHistory>
+      <totalSizeCap>2GB</totalSizeCap>
+    </rollingPolicy>
+    <encoder>
+      <!-- 只输出消息本身，不加日志框架前缀，保留格式块的可读性 -->
+      <pattern>%msg%n</pattern>
+      <charset>UTF-8</charset>
+    </encoder>
+  </appender>
+
+  <!-- INTERACTION_LOG → 仅写 interaction.log，不输出到控制台 -->
+  <logger name="INTERACTION_LOG" level="INFO" additivity="false">
+    <appender-ref ref="INTERACTION_FILE"/>
+  </logger>
+
   <!-- Agent 核心包 → 控制台 + agent.log -->
   <logger name="com.ran.cjb_agent.service.agent" level="DEBUG" additivity="false">
     <appender-ref ref="CONSOLE"/>

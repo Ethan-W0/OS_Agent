@@ -1,6 +1,7 @@
 package com.ran.cjb_agent.agent.graph.nodes;
 
 import com.ran.cjb_agent.agent.graph.AgentState;
+import com.ran.cjb_agent.service.log.AgentInteractionLogger;
 import com.ran.cjb_agent.service.ssh.SshService;
 import com.ran.cjb_agent.websocket.StreamingResponseEmitter;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,7 @@ public class ExecutionNode {
 
     private final SshService sshService;
     private final StreamingResponseEmitter emitter;
+    private final AgentInteractionLogger interactionLogger;
 
     public AgentState process(AgentState state) {
         String command = state.getCurrentCommand();
@@ -32,6 +34,7 @@ public class ExecutionNode {
         try {
             String rawResult = sshService.execute(state.getSshConnectionId(), command, 60);
             state.setCurrentRawResult(rawResult);
+            interactionLogger.recordExecution(state.getSessionId(), command, rawResult);
             log.info("执行完成 [{}] 步骤{}", state.getSessionId(), state.getCurrentTaskIndex() + 1);
         } catch (Exception e) {
             log.error("执行失败 [{}]: {}", state.getSessionId(), e.getMessage());

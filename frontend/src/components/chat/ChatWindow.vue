@@ -51,6 +51,24 @@
           </div>
         </div>
 
+        <!-- 意图推理过程（THINKING） -->
+        <div v-else-if="msg.type === 'THINKING'" class="msg-row msg-agent">
+          <div class="bubble bubble-thinking-card">
+            <div class="thinking-card-header" @click="toggleThinking(msg.id)">
+              <span class="thinking-card-icon">🧠</span>
+              <span class="thinking-card-title">意图理解过程</span>
+              <span class="thinking-card-chevron">{{ expandedThinking.has(msg.id) ? '▾' : '▸' }}</span>
+            </div>
+            <div v-if="expandedThinking.has(msg.id)" class="thinking-card-body">
+              <div class="thinking-reasoning" v-html="renderMarkdown(msg.content)"></div>
+              <div v-if="msg.command" class="thinking-command">
+                <span class="thinking-command-label">实际执行指令</span>
+                <code class="thinking-command-code">{{ msg.command }}</code>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- 命令预览 -->
         <div v-else-if="msg.type === 'COMMAND_PREVIEW'" class="msg-row msg-agent">
           <div class="bubble bubble-command">
@@ -143,6 +161,25 @@ const sshStore = useSshStore()
 const messagesEl = ref<HTMLElement | null>(null)
 const inputText = ref('')
 const isSending = ref(false)
+
+// Track which THINKING bubbles are expanded (default: expanded)
+const expandedThinking = ref<Set<string>>(new Set())
+
+function toggleThinking(id: string) {
+  if (expandedThinking.value.has(id)) {
+    expandedThinking.value.delete(id)
+  } else {
+    expandedThinking.value.add(id)
+  }
+}
+
+// Auto-expand new THINKING messages
+watch(() => chatStore.messages.length, () => {
+  const last = chatStore.messages[chatStore.messages.length - 1]
+  if (last?.type === 'THINKING') {
+    expandedThinking.value.add(last.id)
+  }
+})
 
 // 自动滚动到底部
 watch(() => chatStore.messages.length, () => {
@@ -429,6 +466,112 @@ function renderMarkdown(content: string): string {
   font-size: 13px;
   color: var(--ink-light);
   font-style: italic;
+}
+
+/* ===== THINKING 推理卡片 ===== */
+.bubble-thinking-card {
+  background: var(--paper-cream);
+  border: 1px solid rgba(74, 64, 53, 0.15);
+  border-left: 3px solid var(--ink-medium);
+  border-radius: 4px var(--radius-md) var(--radius-md) var(--radius-md);
+  box-shadow: var(--shadow-ink);
+  min-width: 260px;
+  max-width: 520px;
+  overflow: hidden;
+}
+
+.thinking-card-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  cursor: pointer;
+  user-select: none;
+  transition: var(--transition);
+}
+
+.thinking-card-header:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.thinking-card-icon { font-size: 14px; }
+
+.thinking-card-title {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-medium);
+  letter-spacing: 0.3px;
+}
+
+.thinking-card-chevron {
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+
+.thinking-card-body {
+  border-top: 1px solid rgba(74, 64, 53, 0.1);
+  padding: 10px 12px 12px;
+}
+
+.thinking-reasoning {
+  font-size: 13px;
+  color: var(--ink-dark);
+  line-height: 1.7;
+}
+
+.thinking-reasoning :deep(ul) {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.thinking-reasoning :deep(li) {
+  padding: 2px 0 2px 16px;
+  position: relative;
+  color: var(--ink-medium);
+}
+
+.thinking-reasoning :deep(li)::before {
+  content: '›';
+  position: absolute;
+  left: 4px;
+  color: var(--ink-faint);
+  font-weight: 700;
+}
+
+.thinking-reasoning :deep(strong) {
+  color: var(--ink-dark);
+  font-weight: 600;
+}
+
+.thinking-reasoning :deep(p) { margin: 0 0 4px; }
+
+.thinking-command {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(74, 64, 53, 0.15);
+}
+
+.thinking-command-label {
+  display: block;
+  font-size: 10px;
+  color: var(--ink-faint);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.thinking-command-code {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  background: var(--paper-warm);
+  border: var(--ink-border);
+  border-radius: var(--radius-sm);
+  padding: 5px 10px;
+  color: var(--ink-black);
+  word-break: break-all;
 }
 
 /* ===== 输入区 ===== */

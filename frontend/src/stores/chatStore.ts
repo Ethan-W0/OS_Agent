@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import axios from 'axios'
 
 export type MessageType = 'TEXT' | 'RISK_WARNING' | 'COMMAND_PREVIEW' | 'RESULT'
-  | 'ERROR' | 'NODE_PROGRESS' | 'REJECTED' | 'TOKEN' | 'USER'
+  | 'ERROR' | 'NODE_PROGRESS' | 'REJECTED' | 'TOKEN' | 'USER' | 'THINKING'
 
 export interface RiskWarning {
   level: 'WARNING' | 'CRITICAL' | 'FORBIDDEN'

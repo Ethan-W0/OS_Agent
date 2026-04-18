@@ -2,6 +2,7 @@ package com.ran.cjb_agent.agent.graph.nodes;
 
 import com.ran.cjb_agent.agent.graph.AgentState;
 import com.ran.cjb_agent.service.config.ModelConfigStore;
+import com.ran.cjb_agent.service.log.AgentInteractionLogger;
 import com.ran.cjb_agent.websocket.StreamingResponseEmitter;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.StreamingResponseHandler;
@@ -26,6 +27,7 @@ public class ResultExplainNode {
 
     private final ModelConfigStore modelConfigStore;
     private final StreamingResponseEmitter emitter;
+    private final AgentInteractionLogger interactionLogger;
 
     private static final String EXPLAIN_PROMPT_TEMPLATE = """
             你是一位 Linux 系统管理助手，请将以下命令执行结果翻译为用户友好的中文说明。
@@ -93,6 +95,9 @@ public class ResultExplainNode {
         String explained = accumulated.toString();
         state.setCurrentExplainedResult(explained);
         state.addStepResult(explained);
+
+        // Write structured interaction log block for this step
+        interactionLogger.flush(sessionId, explained);
 
         if (state.hasNextTask()) {
             state.advanceToNextTask();
