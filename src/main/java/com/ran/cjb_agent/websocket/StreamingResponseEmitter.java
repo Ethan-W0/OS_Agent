@@ -4,6 +4,7 @@ import com.ran.cjb_agent.model.dto.ChatResponse;
 import com.ran.cjb_agent.model.dto.RiskWarningDto;
 import com.ran.cjb_agent.model.enums.MessageType;
 import com.ran.cjb_agent.model.enums.RiskLevel;
+import com.ran.cjb_agent.service.persistence.ChatHistoryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Component;
 public class StreamingResponseEmitter {
 
     private final SimpMessagingTemplate messagingTemplate;
+    private final ChatHistoryService chatHistoryService;
 
     private static final String SESSION_TOPIC_PREFIX = "/topic/session/";
 
@@ -149,6 +151,11 @@ public class StreamingResponseEmitter {
             log.debug("推送消息 [{}] → {}: type={}", sessionId, destination, response.getType());
         } catch (Exception e) {
             log.error("WebSocket 推送失败 [sessionId={}]: {}", sessionId, e.getMessage());
+        }
+        try {
+            chatHistoryService.saveAgentMessage(sessionId, response);
+        } catch (Exception e) {
+            log.warn("消息持久化失败 [sessionId={}]: {}", sessionId, e.getMessage());
         }
     }
 }

@@ -3,17 +3,21 @@ package com.ran.cjb_agent.agent.graph.nodes;
 import com.ran.cjb_agent.agent.graph.AgentState;
 import com.ran.cjb_agent.service.config.ModelConfigStore;
 import com.ran.cjb_agent.websocket.StreamingResponseEmitter;
-import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.openai.OpenAiChatModel;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.model.StreamingResponseHandler;
+import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
+import dev.langchain4j.model.output.Response;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.util.concurrent.CountDownLatch;
 
 /**
- * 结果解释节点
- * 将原始 SSH 命令输出翻译为自然语言并推流到前端
+ * 结果解释节点（流式推送）
+ * 纯文本生成，无工具调用，qwen-plus 流式完全兼容
  */
 @Slf4j
 @Component
@@ -40,35 +44,56 @@ public class ResultExplainNode {
             """;
 
     public AgentState process(AgentState state) {
-        log.info("结果解释节点 [{}] 步骤{}", state.getSessionId(), state.getCurrentTaskIndex() + 1);
+        log.info("结果解释节点（流式）[{}] 步骤{}", state.getSessionId(), state.getCurrentTaskIndex() + 1);
         state.setCurrentNode("explain_result");
 
+        String prompt = String.format(EXPLAIN_PROMPT_TEMPLATE,
+                state.getCurrentCommand(),
+                state.getCurrentTaskDescription(),
+                state.getCurrentRawResult());
+
+        StringBuilder accumulated = new StringBuilder();
+        CountDownLatch latch = new CountDownLatch(1);
+        String sessionId = state.getSessionId();
+
         try {
-            String prompt = String.format(EXPLAIN_PROMPT_TEMPLATE,
-                    state.getCurrentCommand(),
-                    state.getCurrentTaskDescription(),
-                    state.getCurrentRawResult());
+            StreamingChatLanguageModel model = buildStreamingModel();
+            model.generate(prompt, new StreamingResponseHandler<AiMessage>() {
+                @Override
+                public void onNext(String token) {
+                    accumulated.append(token);
+                    emitter.pushToken(sessionId, token, false);
+                }
 
-            ChatLanguageModel model = buildModel();
-            String explained = model.generate(prompt);
+                @Override
+                public void onComplete(Response<AiMessage> response) {
+                    emitter.pushToken(sessionId, "", true);
+                    latch.countDown();
+                }
 
-            state.setCurrentExplainedResult(explained);
-            state.addStepResult(explained);
+                @Override
+                public void onError(Throwable error) {
+                    log.error("结果解释流式失败 [{}]: {}", sessionId, error.getMessage());
+                    String fallback = "执行结果：\n" + state.getCurrentRawResult();
+                    accumulated.append(fallback);
+                    emitter.pushResult(sessionId, fallback);
+                    latch.countDown();
+                }
+            });
 
-            // 推送到前端
-            emitter.pushResult(state.getSessionId(), explained);
-            log.info("结果解释完成 [{}] 步骤{}", state.getSessionId(), state.getCurrentTaskIndex() + 1);
+            latch.await();
 
         } catch (Exception e) {
-            log.error("结果解释失败 [{}]: {}", state.getSessionId(), e.getMessage());
-            // 降级：直接推送原始结果
+            log.error("结果解释节点异常 [{}]: {}", sessionId, e.getMessage());
             String fallback = "执行结果：\n" + state.getCurrentRawResult();
-            state.setCurrentExplainedResult(fallback);
-            state.addStepResult(fallback);
-            emitter.pushResult(state.getSessionId(), fallback);
+            accumulated.append(fallback);
+            emitter.pushResult(sessionId, fallback);
         }
 
-        // 如果还有下一步，推进状态
+        String explained = accumulated.toString();
+        state.setCurrentExplainedResult(explained);
+        state.addStepResult(explained);
+
         if (state.hasNextTask()) {
             state.advanceToNextTask();
         }
@@ -76,9 +101,9 @@ public class ResultExplainNode {
         return state;
     }
 
-    private ChatLanguageModel buildModel() {
+    private StreamingChatLanguageModel buildStreamingModel() {
         var config = modelConfigStore.get();
-        return OpenAiChatModel.builder()
+        return OpenAiStreamingChatModel.builder()
                 .baseUrl(config.getBaseUrl())
                 .apiKey(config.getApiKey())
                 .modelName(config.getModelName())

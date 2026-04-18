@@ -1,13 +1,16 @@
 package com.ran.cjb_agent.controller;
 
 import com.ran.cjb_agent.model.dto.ChatRequest;
+import com.ran.cjb_agent.model.entity.ChatMessageEntity;
 import com.ran.cjb_agent.service.agent.AgentOrchestrator;
 import com.ran.cjb_agent.service.agent.AgentSessionManager;
+import com.ran.cjb_agent.service.persistence.ChatHistoryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -23,6 +26,7 @@ public class ChatController {
 
     private final AgentOrchestrator agentOrchestrator;
     private final AgentSessionManager sessionManager;
+    private final ChatHistoryService chatHistoryService;
 
     /**
      * 发送消息给 Agent
@@ -37,6 +41,9 @@ public class ChatController {
 
         log.info("收到聊天请求 [{}]: {}", sessionId, request.getMessage());
 
+        // 持久化用户消息
+        chatHistoryService.saveUserMessage(sessionId, request.getMessage());
+
         // 异步处理（@Async，立即返回）
         agentOrchestrator.processMessageAsync(
                 sessionId,
@@ -50,6 +57,22 @@ public class ChatController {
                 "status", "processing",
                 "message", "消息已接收，正在处理中..."
         ));
+    }
+
+    /**
+     * 获取所有历史会话列表（供前端会话历史面板展示）
+     */
+    @GetMapping("/sessions")
+    public ResponseEntity<List<Map<String, Object>>> listSessions() {
+        return ResponseEntity.ok(chatHistoryService.listSessions());
+    }
+
+    /**
+     * 获取会话历史消息（刷新后恢复聊天记录）
+     */
+    @GetMapping("/session/{sessionId}/history")
+    public ResponseEntity<List<ChatMessageEntity>> getHistory(@PathVariable String sessionId) {
+        return ResponseEntity.ok(chatHistoryService.getHistory(sessionId));
     }
 
     /**
@@ -77,6 +100,7 @@ public class ChatController {
     @DeleteMapping("/session/{sessionId}")
     public ResponseEntity<Map<String, String>> clearSession(@PathVariable String sessionId) {
         sessionManager.remove(sessionId);
+        chatHistoryService.clearHistory(sessionId);
         return ResponseEntity.ok(Map.of(
                 "message", "会话记忆已清空，下次对话将重新开始。"
         ));

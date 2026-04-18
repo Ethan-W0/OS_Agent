@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <property name="LOG_PATH" value="logs"/>
+  <property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{40} - %msg%n"/>
+
+  <!-- 控制台输出 -->
+  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+      <charset>UTF-8</charset>
+    </encoder>
+  </appender>
+
+  <!-- Agent 日志文件（按天滚动，保留 30 天） -->
+  <appender name="AGENT_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${LOG_PATH}/agent.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>${LOG_PATH}/agent.%d{yyyy-MM-dd}.log</fileNamePattern>
+      <maxHistory>30</maxHistory>
+      <totalSizeCap>1GB</totalSizeCap>
+    </rollingPolicy>
+    <encoder>
+      <pattern>${LOG_PATTERN}</pattern>
+      <charset>UTF-8</charset>
+    </encoder>
+  </appender>
+
+  <!-- SSH 操作专项日志 -->
+  <appender name="SSH_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${LOG_PATH}/ssh.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>${LOG_PATH}/ssh.%d{yyyy-MM-dd}.log</fileNamePattern>
+      <maxHistory>30</maxHistory>
+    </rollingPolicy>
+    <encoder>
+      <pattern>${LOG_PATTERN}</pattern>
+      <charset>UTF-8</charset>
+    </encoder>
+  </appender>
+
+  <!-- Agent 核心包 → 控制台 + agent.log -->
+  <logger name="com.ran.cjb_agent.service.agent" level="DEBUG" additivity="false">
+    <appender-ref ref="CONSOLE"/>
+    <appender-ref ref="AGENT_FILE"/>
+  </logger>
+
+  <logger name="com.ran.cjb_agent.agent" level="DEBUG" additivity="false">
+    <appender-ref ref="CONSOLE"/>
+    <appender-ref ref="AGENT_FILE"/>
+  </logger>
+
+  <logger name="com.ran.cjb_agent.websocket" level="DEBUG" additivity="false">
+    <appender-ref ref="CONSOLE"/>
+    <appender-ref ref="AGENT_FILE"/>
+  </logger>
+
+  <!-- SSH 操作 → 控制台 + ssh.log -->
+  <logger name="com.ran.cjb_agent.service.ssh" level="DEBUG" additivity="false">
+    <appender-ref ref="CONSOLE"/>
+    <appender-ref ref="SSH_FILE"/>
+  </logger>
+
+  <!-- 其他业务包 → 控制台 + agent.log -->
+  <logger name="com.ran.cjb_agent" level="DEBUG" additivity="false">
+    <appender-ref ref="CONSOLE"/>
+    <appender-ref ref="AGENT_FILE"/>
+  </logger>
+
+  <!-- 第三方库 → 仅控制台，INFO 级 -->
+  <logger name="dev.langchain4j" level="INFO" additivity="false">
+    <appender-ref ref="CONSOLE"/>
+  </logger>
+
+  <logger name="org.hibernate" level="WARN" additivity="false">
+    <appender-ref ref="CONSOLE"/>
+  </logger>
+
+  <root level="INFO">
+    <appender-ref ref="CONSOLE"/>
+  </root>
+</configuration>

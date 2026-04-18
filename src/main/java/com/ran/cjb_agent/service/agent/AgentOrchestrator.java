@@ -119,25 +119,21 @@ public class AgentOrchestrator {
     }
 
     /**
-     * 使用 LangChain4j AiServices 处理简单任务（单步，快速响应）
+     * 使用 LangChain4j AiServices 处理简单任务（工具调用，同步推送）
+     * 使用非流式模型确保工具调用可靠执行，结果推送为完整 TEXT 消息
      */
     private void executeWithAiServices(String sessionId, String userMessage,
                                        String sshConnectionId, AgentSession session) {
-        log.info("使用 AiServices 模式处理 [{}]", sessionId);
+        log.info("使用 AiServices 工具调用模式处理 [{}]", sessionId);
 
-        // 构建动态系统提示词
         OsProfile profile = session.getOsProfile() != null
                 ? session.getOsProfile()
                 : osProfileCache.getOrDefault(sshConnectionId);
         String systemPrompt = systemPromptBuilder.buildSystemPrompt(profile);
 
-        // 获取多轮对话记忆
         ChatMemory memory = memoryStore.getOrCreate(sessionId);
-
-        // 动态构建 ChatModel（热配置支持）
         ChatLanguageModel model = buildCurrentModel();
 
-        // 构建 AiService（注入全部工具类 + 记忆 + 动态系统提示词）
         OsAssistant assistant = AiServices.builder(OsAssistant.class)
                 .chatLanguageModel(model)
                 .systemMessageProvider(id -> systemPrompt)
@@ -147,8 +143,9 @@ public class AgentOrchestrator {
 
         try {
             String connId = sshConnectionId != null ? sshConnectionId : "";
-            String response = assistant.chat(connId, userMessage);
-            emitter.pushText(sessionId, response);
+            emitter.pushNodeProgress(sessionId, "thinking", "🤔 正在分析指令并执行...");
+            String result = assistant.chat(connId, userMessage);
+            emitter.pushText(sessionId, result);
         } catch (Exception e) {
             log.error("AiServices 执行失败 [{}]: {}", sessionId, e.getMessage());
             emitter.pushError(sessionId, "执行失败：" + e.getMessage());
@@ -171,7 +168,7 @@ public class AgentOrchestrator {
     }
 
     /**
-     * 基于当前配置动态构建 ChatModel
+     * 基于当前配置动态构建非流式 ChatModel（工具调用更可靠）
      */
     private ChatLanguageModel buildCurrentModel() {
         var config = modelConfigStore.get();

@@ -21,37 +21,24 @@ public class SshConnectionDto {
      */
     private String id;
 
-    /**
-     * 连接别名
-     */
     @NotBlank(message = "连接名称不能为空")
     private String name;
 
-    /**
-     * 目标主机
-     */
     @NotBlank(message = "主机地址不能为空")
     private String host;
 
-    /**
-     * SSH 端口（默认 22）
-     */
     @Builder.Default
     private int port = 22;
 
-    /**
-     * 用户名
-     */
     @NotBlank(message = "用户名不能为空")
     private String username;
 
-    /**
-     * 密码（与 privateKey 二选一）
-     */
     private String password;
 
-    /**
-     * 私钥内容（PEM 格式）
-     */
     private String privateKey;
+
+    /**
+     * 当前会话 ID（连接成功后通过 WebSocket 推送环境信息）
+     */
+    private String sessionId;
 }

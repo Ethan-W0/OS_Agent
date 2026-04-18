@@ -1,0 +1,29 @@
+2026-04-18 17:09:07.798 [agent-task-1] DEBUG c.ran.cjb_agent.service.ssh.SshService - SSH执行 [96004c37-3646-4fa1-baba-7c9561ec004e]: cat /etc/os-release 2>/dev/null || cat /etc/issue 2>/dev/null || echo 'UNKNOWN'
+2026-04-18 17:10:18.763 [http-nio-8080-exec-4] INFO  c.r.c.service.ssh.SshConnectionPool - 建立 SSH 连接: wh@192.168.181.129:22
+2026-04-18 17:10:18.912 [http-nio-8080-exec-4] INFO  c.r.c.service.ssh.SshConnectionPool - SSH 连接已建立: adaa6209-9185-45eb-83fc-41e4276fb458
+2026-04-18 17:10:18.913 [http-nio-8080-exec-4] DEBUG c.ran.cjb_agent.service.ssh.SshService - SSH执行 [adaa6209-9185-45eb-83fc-41e4276fb458]: cat /etc/os-release 2>/dev/null || cat /etc/issue 2>/dev/null || echo 'UNKNOWN'
+2026-04-18 17:10:19.064 [http-nio-8080-exec-4] DEBUG c.ran.cjb_agent.service.ssh.SshService - SSH执行完成 [adaa6209-9185-45eb-83fc-41e4276fb458] exitCode=0
+2026-04-18 17:10:19.068 [http-nio-8080-exec-4] DEBUG c.ran.cjb_agent.service.ssh.SshService - SSH执行 [adaa6209-9185-45eb-83fc-41e4276fb458]: uname -r
+2026-04-18 17:10:19.080 [http-nio-8080-exec-4] DEBUG c.ran.cjb_agent.service.ssh.SshService - SSH执行完成 [adaa6209-9185-45eb-83fc-41e4276fb458] exitCode=0
+2026-04-18 17:10:19.080 [http-nio-8080-exec-4] DEBUG c.ran.cjb_agent.service.ssh.SshService - SSH执行 [adaa6209-9185-45eb-83fc-41e4276fb458]: uname -m
+2026-04-18 17:10:19.095 [http-nio-8080-exec-4] DEBUG c.ran.cjb_agent.service.ssh.SshService - SSH执行完成 [adaa6209-9185-45eb-83fc-41e4276fb458] exitCode=0
+2026-04-18 17:10:19.095 [http-nio-8080-exec-4] DEBUG c.ran.cjb_agent.service.ssh.SshService - SSH执行 [adaa6209-9185-45eb-83fc-41e4276fb458]: hostname
+2026-04-18 17:10:19.110 [http-nio-8080-exec-4] DEBUG c.ran.cjb_agent.service.ssh.SshService - SSH执行完成 [adaa6209-9185-45eb-83fc-41e4276fb458] exitCode=0
+2026-04-18 17:10:19.111 [http-nio-8080-exec-4] DEBUG c.ran.cjb_agent.service.ssh.SshService - SSH执行 [adaa6209-9185-45eb-83fc-41e4276fb458]: whoami
+2026-04-18 17:10:19.126 [http-nio-8080-exec-4] DEBUG c.ran.cjb_agent.service.ssh.SshService - SSH执行完成 [adaa6209-9185-45eb-83fc-41e4276fb458] exitCode=0
+2026-04-18 17:10:19.127 [http-nio-8080-exec-4] DEBUG c.ran.cjb_agent.service.ssh.SshService - SSH执行 [adaa6209-9185-45eb-83fc-41e4276fb458]: pwd
+2026-04-18 17:10:19.143 [http-nio-8080-exec-4] DEBUG c.ran.cjb_agent.service.ssh.SshService - SSH执行完成 [adaa6209-9185-45eb-83fc-41e4276fb458] exitCode=0
+2026-04-18 17:10:19.143 [http-nio-8080-exec-4] DEBUG c.ran.cjb_agent.service.ssh.SshService - SSH执行 [adaa6209-9185-45eb-83fc-41e4276fb458]: df -h / | tail -1
+2026-04-18 17:10:19.158 [http-nio-8080-exec-4] DEBUG c.ran.cjb_agent.service.ssh.SshService - SSH执行完成 [adaa6209-9185-45eb-83fc-41e4276fb458] exitCode=0
+2026-04-18 17:10:19.158 [http-nio-8080-exec-4] DEBUG c.ran.cjb_agent.service.ssh.SshService - SSH执行 [adaa6209-9185-45eb-83fc-41e4276fb458]: ps aux --sort=-%cpu | head -6
+2026-04-18 17:10:19.281 [http-nio-8080-exec-4] DEBUG c.ran.cjb_agent.service.ssh.SshService - SSH执行完成 [adaa6209-9185-45eb-83fc-41e4276fb458] exitCode=0
+2026-04-18 17:10:19.281 [http-nio-8080-exec-4] DEBUG c.ran.cjb_agent.service.ssh.SshService - SSH执行 [adaa6209-9185-45eb-83fc-41e4276fb458]: ps aux --sort=-%cpu | awk 'NR>1 && $3>90 {print $11, $3"%"}' | head -3
+2026-04-18 17:10:19.405 [http-nio-8080-exec-4] DEBUG c.ran.cjb_agent.service.ssh.SshService - SSH执行完成 [adaa6209-9185-45eb-83fc-41e4276fb458] exitCode=0
+2026-04-18 17:10:20.569 [MessageBroker-1] DEBUG c.r.c.service.ssh.SshHeartbeatScheduler - 发送 SSH 心跳，活跃连接数: 1
+2026-04-18 17:10:20.569 [MessageBroker-1] DEBUG c.ran.cjb_agent.service.ssh.SshService - SSH执行 [adaa6209-9185-45eb-83fc-41e4276fb458]: echo heartbeat
+2026-04-18 17:10:20.584 [MessageBroker-1] DEBUG c.ran.cjb_agent.service.ssh.SshService - SSH执行完成 [adaa6209-9185-45eb-83fc-41e4276fb458] exitCode=0
+2026-04-18 17:10:20.584 [MessageBroker-1] DEBUG c.r.c.service.ssh.SshHeartbeatScheduler - SSH 心跳成功: adaa6209-9185-45eb-83fc-41e4276fb458
+2026-04-18 17:10:45.587 [MessageBroker-11] DEBUG c.r.c.service.ssh.SshHeartbeatScheduler - 发送 SSH 心跳，活跃连接数: 1
+2026-04-18 17:10:45.588 [MessageBroker-11] DEBUG c.ran.cjb_agent.service.ssh.SshService - SSH执行 [adaa6209-9185-45eb-83fc-41e4276fb458]: echo heartbeat
+2026-04-18 17:10:45.603 [MessageBroker-11] DEBUG c.ran.cjb_agent.service.ssh.SshService - SSH执行完成 [adaa6209-9185-45eb-83fc-41e4276fb458] exitCode=0
+2026-04-18 17:10:45.603 [MessageBroker-11] DEBUG c.r.c.service.ssh.SshHeartbeatScheduler - SSH 心跳成功: adaa6209-9185-45eb-83fc-41e4276fb458
