@@ -97,6 +97,31 @@
             <span>{{ msg.content }}</span>
           </div>
         </div>
+
+        <!-- sudo 密码请求卡 -->
+        <div v-else-if="msg.type === 'SUDO_REQUEST'" class="msg-row msg-agent">
+          <div class="bubble bubble-sudo-card">
+            <div class="sudo-card-header">
+              <span class="sudo-card-icon">🔐</span>
+              <span class="sudo-card-title">需要 sudo 权限</span>
+            </div>
+            <div class="sudo-card-body" v-html="renderMarkdown(msg.content)"></div>
+            <div v-if="!msg.sudoSubmitted" class="sudo-input-row">
+              <input
+                :ref="el => { if (el) sudoInputs[msg.id] = el as HTMLInputElement }"
+                type="password"
+                class="sudo-input"
+                placeholder="输入 sudo 密码..."
+                @keydown.enter="submitSudoPassword(msg)"
+              />
+              <button class="sudo-btn-submit" @click="submitSudoPassword(msg)">提交</button>
+              <button class="sudo-btn-cancel" @click="cancelSudoPassword(msg)">取消</button>
+            </div>
+            <div v-else class="sudo-submitted-hint">
+              <span>✅ 密码已提交，正在继续执行...</span>
+            </div>
+          </div>
+        </div>
       </template>
 
       <!-- 流式输出中 -->
@@ -165,6 +190,9 @@ const isSending = ref(false)
 // Track which THINKING bubbles are expanded (default: expanded)
 const expandedThinking = ref<Set<string>>(new Set())
 
+// Per-message sudo password input refs
+const sudoInputs = ref<Record<string, HTMLInputElement>>({})
+
 function toggleThinking(id: string) {
   if (expandedThinking.value.has(id)) {
     expandedThinking.value.delete(id)
@@ -178,6 +206,13 @@ watch(() => chatStore.messages.length, () => {
   const last = chatStore.messages[chatStore.messages.length - 1]
   if (last?.type === 'THINKING') {
     expandedThinking.value.add(last.id)
+  }
+  // Auto-focus sudo password input when SUDO_REQUEST arrives
+  if (last?.type === 'SUDO_REQUEST') {
+    nextTick(() => {
+      const input = sudoInputs.value[last.id]
+      if (input) input.focus()
+    })
   }
 })
 
@@ -238,6 +273,35 @@ async function handleConfirm(msg: ChatMessage, approved: boolean) {
   } catch (e) {
     console.error('确认请求失败', e)
   }
+}
+
+async function submitSudoPassword(msg: ChatMessage) {
+  const input = sudoInputs.value[msg.id]
+  const password = input?.value?.trim()
+  if (!password) return
+
+  try {
+    await axios.post('/api/security/sudo-password', {
+      sessionId: chatStore.sessionId,
+      password
+    })
+    chatStore.markSudoSubmitted(msg.id)
+    if (input) input.value = ''
+  } catch (e: any) {
+    const errMsg = e?.response?.data?.message || '提交失败，请重试。'
+    alert('sudo 密码提交失败：' + errMsg)
+  }
+}
+
+async function cancelSudoPassword(msg: ChatMessage) {
+  try {
+    // Submit empty string to unblock the waiting thread (will be treated as cancelled)
+    await axios.post('/api/security/sudo-password', {
+      sessionId: chatStore.sessionId,
+      password: ''
+    })
+  } catch (_) { /* ignore */ }
+  chatStore.markSudoSubmitted(msg.id)
 }
 
 function renderMarkdown(content: string): string {
@@ -735,6 +799,122 @@ function renderMarkdown(content: string): string {
   padding-left: 10px;
   color: var(--ink-light);
   margin: 6px 0;
+}
+
+/* ===== sudo 密码请求卡 ===== */
+.bubble-sudo-card {
+  background: var(--paper-cream);
+  border: 1px solid rgba(26, 82, 118, 0.25);
+  border-left: 3px solid #1a5276;
+  border-radius: 4px var(--radius-md) var(--radius-md) var(--radius-md);
+  box-shadow: var(--shadow-ink);
+  min-width: 300px;
+  max-width: 480px;
+  overflow: hidden;
+  padding: 0;
+}
+
+.sudo-card-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 13px;
+  background: rgba(26, 82, 118, 0.06);
+  border-bottom: 1px solid rgba(26, 82, 118, 0.12);
+}
+
+.sudo-card-icon { font-size: 15px; }
+
+.sudo-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a5276;
+}
+
+.sudo-card-body {
+  padding: 10px 13px 6px;
+  font-size: 13px;
+  color: var(--ink-dark);
+  line-height: 1.6;
+}
+
+.sudo-card-body :deep(p) { margin: 0 0 4px; }
+.sudo-card-body :deep(code) {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: var(--paper-warm);
+  border: var(--ink-border);
+  border-radius: 3px;
+  padding: 1px 5px;
+}
+.sudo-card-body :deep(pre) {
+  background: var(--paper-warm);
+  border: var(--ink-border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  overflow-x: auto;
+  margin: 6px 0;
+}
+.sudo-card-body :deep(pre code) { background: none; padding: 0; }
+
+.sudo-input-row {
+  display: flex;
+  gap: 6px;
+  padding: 8px 13px 12px;
+  align-items: center;
+}
+
+.sudo-input {
+  flex: 1;
+  border: var(--ink-border-dark);
+  border-radius: var(--radius-sm);
+  padding: 7px 10px;
+  font-size: 13px;
+  font-family: var(--font-mono);
+  color: var(--ink-black);
+  background: var(--paper-white);
+  outline: none;
+  transition: var(--transition);
+}
+
+.sudo-input:focus {
+  border-color: #1a5276;
+  box-shadow: 0 0 0 2px rgba(26, 82, 118, 0.12);
+}
+
+.sudo-btn-submit {
+  padding: 6px 14px;
+  background: #1a5276;
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.sudo-btn-submit:hover { background: #154360; }
+
+.sudo-btn-cancel {
+  padding: 6px 10px;
+  background: transparent;
+  color: var(--ink-light);
+  border: var(--ink-border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.sudo-btn-cancel:hover { color: var(--ink-dark); border-color: var(--ink-medium); }
+
+.sudo-submitted-hint {
+  padding: 8px 13px 12px;
+  font-size: 13px;
+  color: var(--jade);
 }
 
 /* ===== 动画 ===== */

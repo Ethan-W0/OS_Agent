@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import axios from 'axios'
 
 export type MessageType = 'TEXT' | 'RISK_WARNING' | 'COMMAND_PREVIEW' | 'RESULT'
-  | 'ERROR' | 'NODE_PROGRESS' | 'REJECTED' | 'TOKEN' | 'USER' | 'THINKING'
+  | 'ERROR' | 'NODE_PROGRESS' | 'REJECTED' | 'TOKEN' | 'USER' | 'THINKING' | 'SUDO_REQUEST'
 
 export interface RiskWarning {
   level: 'WARNING' | 'CRITICAL' | 'FORBIDDEN'
@@ -28,6 +28,8 @@ export interface ChatMessage {
   finished?: boolean
   // 风险警告状态
   confirmed?: boolean  // true=已批准，false=已拒绝，undefined=待确认
+  // sudo 密码请求状态
+  sudoSubmitted?: boolean  // true=密码已提交
 }
 
 const SESSION_STORAGE_KEY = 'os_agent_session_id'
@@ -81,6 +83,9 @@ export const useChatStore = defineStore('chat', () => {
       isProcessing.value = false
     }
 
+    // SUDO_REQUEST keeps isProcessing = true (agent is paused waiting for password)
+    // so the UI still shows the agent is "thinking"
+
     addMessage({
       type,
       content: data.content || '',
@@ -98,6 +103,13 @@ export const useChatStore = defineStore('chat', () => {
     const msg = messages.value.find(m => m.confirmationToken === confirmationToken)
     if (msg) {
       msg.confirmed = approved
+    }
+  }
+
+  function markSudoSubmitted(messageId: string) {
+    const msg = messages.value.find(m => m.id === messageId)
+    if (msg) {
+      msg.sudoSubmitted = true
     }
   }
 
@@ -149,6 +161,6 @@ export const useChatStore = defineStore('chat', () => {
   return {
     messages, sessionId, isStreaming, streamingContent, isProcessing,
     addUserMessage, addMessage, appendToken, handleServerMessage,
-    markConfirmation, clearMessages, loadHistory, switchSession
+    markConfirmation, markSudoSubmitted, clearMessages, loadHistory, switchSession
   }
 })
