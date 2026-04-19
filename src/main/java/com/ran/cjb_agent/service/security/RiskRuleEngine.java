@@ -288,11 +288,31 @@ public class RiskRuleEngine {
     // Private helpers
     // ══════════════════════════════════════════════════════════════════
 
+    /** 针对 touch/mkdir/cp/mv 等不用重定向的写入命令的路径提取 */
+    private static final Pattern TOUCH_MKDIR   = Pattern.compile(
+            "^(?:touch|mkdir(?:\\s+-[pvm]+)*)\\s+(?:.*\\s+)?([^\\s;|&]+)$");
+    private static final Pattern CP_MV_INSTALL = Pattern.compile(
+            "^(?:cp|mv|install)(?:\\s+-[a-zA-Z]+)*\\s+\\S+\\s+([^\\s;|&]+)$");
+    private static final Pattern CHOWN_CHMOD   = Pattern.compile(
+            "^(?:chown|chmod)(?:\\s+-[a-zA-Z]+)*\\s+\\S+\\s+([^\\s;|&]+)$");
+
     private String extractWriteTarget(String command) {
+        // 1. > / >> redirect (highest confidence)
         Matcher m = WRITE_REDIRECT.matcher(command);
         if (m.find()) return m.group(1).trim();
+        // 2. tee command
         Matcher t = TEE_TARGET.matcher(command);
         if (t.find()) return t.group(1).trim();
+        // 3. touch / mkdir → last argument
+        String trim = command.trim();
+        Matcher tm = TOUCH_MKDIR.matcher(trim);
+        if (tm.find()) return tm.group(1).trim();
+        // 4. cp / mv → destination (last arg)
+        Matcher cm = CP_MV_INSTALL.matcher(trim);
+        if (cm.find()) return cm.group(1).trim();
+        // 5. chown / chmod → path argument
+        Matcher cc = CHOWN_CHMOD.matcher(trim);
+        if (cc.find()) return cc.group(1).trim();
         return null;
     }
 

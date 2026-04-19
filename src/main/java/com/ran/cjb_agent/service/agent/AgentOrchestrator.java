@@ -13,6 +13,7 @@ import com.ran.cjb_agent.service.os.OSProbeService;
 import com.ran.cjb_agent.service.os.OsProfileCache;
 import com.ran.cjb_agent.service.os.SystemPromptBuilder;
 import com.ran.cjb_agent.service.log.AgentInteractionLogger;
+import com.ran.cjb_agent.service.persistence.ChatHistoryService;
 import com.ran.cjb_agent.service.tools.*;
 import com.ran.cjb_agent.websocket.StreamingResponseEmitter;
 import dev.langchain4j.memory.ChatMemory;
@@ -51,6 +52,7 @@ public class AgentOrchestrator {
     private final StreamingResponseEmitter emitter;
     private final OsAgentGraph osAgentGraph;
     private final AgentInteractionLogger interactionLogger;
+    private final ChatHistoryService chatHistoryService;
 
     // LangChain4j @Tool 工具类
     private final DiskTools diskTools;
@@ -86,13 +88,14 @@ public class AgentOrchestrator {
                                 profile.getDistro().getDisplayName(), profile.getVersion()));
             }
 
-            // ===== Step 2: 选择执行策略 =====
-            if (isComplexTask(userMessage)) {
-                // 复杂多步任务：使用 LangGraph4j 状态图
-                executeWithGraph(sessionId, userMessage, connId, session);
+            // ===== Step 2: 上下文消解（指代词/省略主语） =====
+            String resolvedMessage = resolveContextIfNeeded(sessionId, userMessage);
+
+            // ===== Step 3: 选择执行策略 =====
+            if (isComplexTask(resolvedMessage)) {
+                executeWithGraph(sessionId, resolvedMessage, connId, session);
             } else {
-                // 简单任务：使用 LangChain4j AiServices（带工具调用）
-                executeWithAiServices(sessionId, userMessage, connId, session);
+                executeWithAiServices(sessionId, resolvedMessage, connId, session);
             }
 
         } catch (Exception e) {
@@ -224,6 +227,97 @@ public class AgentOrchestrator {
         } catch (Exception e) {
             log.warn("生成思考过程失败 [{}]: {}", sessionId, e.getMessage());
             // Non-fatal — continue without thinking
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // 上下文消解：指代词 / 省略主语/宾语
+    // ══════════════════════════════════════════════════════════════════
+
+    /** 触发上下文消解的词汇 */
+    private static final java.util.Set<String> CONTEXT_TRIGGERS = java.util.Set.of(
+            "它", "这个", "那个", "这", "那", "其", "该",
+            "再", "继续", "同样", "也", "还", "上面", "之前", "刚才", "上次"
+    );
+
+    /**
+     * 若用户消息包含指代词或省略主语，则调用 LLM 结合历史消解为完整独立指令；
+     * 否则直接返回原始消息（避免不必要的额外 LLM 调用）。
+     */
+    private String resolveContextIfNeeded(String sessionId, String userMessage) {
+        if (userMessage == null || userMessage.isBlank()) return userMessage;
+        if (!needsContextResolution(userMessage)) return userMessage;
+
+        String contextSummary = buildContextSummary(sessionId);
+        if (contextSummary.isBlank()) return userMessage; // 无历史，无需消解
+
+        try {
+            String prompt = String.format("""
+                    你是一位语境理解专家，负责将含有指代词或省略内容的用户指令转化为完整、独立、无歧义的操作指令。
+
+                    【最近对话历史】
+                    %s
+
+                    【当前用户输入】
+                    "%s"
+
+                    【任务要求】
+                    1. 识别当前输入中的指代词（如"它"→具体对象）、省略主语/宾语（如"再看看"→看什么）
+                    2. 结合历史对话推断完整意图
+                    3. 输出一句完整的中文操作指令，让任何人都能理解执行意图，无需上下文
+                    4. 如果当前输入已经完整清晰（无指代、无省略），则原样返回，不要修改
+
+                    只输出最终指令文本，不要任何解释或额外内容。
+                    """, contextSummary, userMessage);
+
+            ChatLanguageModel model = buildCurrentModel();
+            String resolved = model.generate(prompt).trim();
+
+            // Discard if the LLM returned empty or overly long result
+            if (!resolved.isBlank() && resolved.length() < 200 && !resolved.equals(userMessage)) {
+                log.info("上下文消解 [{}]: \"{}\" → \"{}\"", sessionId, userMessage, resolved);
+                emitter.pushNodeProgress(sessionId, "context_resolve",
+                        String.format("🔗 上下文消解：\"%s\" → \"%s\"", userMessage, resolved));
+                return resolved;
+            }
+        } catch (Exception e) {
+            log.warn("上下文消解失败 [{}]: {}", sessionId, e.getMessage());
+        }
+        return userMessage;
+    }
+
+    private boolean needsContextResolution(String message) {
+        for (String trigger : CONTEXT_TRIGGERS) {
+            if (message.contains(trigger)) return true;
+        }
+        // Very short messages often rely on context
+        return message.trim().length() <= 6;
+    }
+
+    private String buildContextSummary(String sessionId) {
+        try {
+            var history = chatHistoryService.getHistory(sessionId);
+            if (history.size() < 2) return "";
+
+            int start = Math.max(0, history.size() - 8); // last 4 exchanges
+            var recent = history.subList(start, history.size());
+
+            StringBuilder sb = new StringBuilder();
+            for (var msg : recent) {
+                String type = msg.getType();
+                String content = msg.getContent();
+                if (content == null || content.isBlank()) continue;
+                // Truncate long agent responses
+                if (content.length() > 120) content = content.substring(0, 120) + "…";
+                if ("USER".equals(type)) {
+                    sb.append("用户：").append(content).append("\n");
+                } else if ("TEXT".equals(type) || "RESULT".equals(type)) {
+                    sb.append("Agent：").append(content).append("\n");
+                }
+            }
+            return sb.toString().trim();
+        } catch (Exception e) {
+            return "";
         }
     }
 
