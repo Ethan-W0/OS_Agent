@@ -157,6 +157,18 @@ public class StreamingResponseEmitter {
     }
 
     /**
+     * 推送 sudo 密码请求（挂起 Agent，等待用户在聊天框输入密码）
+     */
+    public void pushSudoRequest(String sessionId, String prompt) {
+        push(sessionId, ChatResponse.builder()
+                .type(MessageType.SUDO_REQUEST)
+                .sessionId(sessionId)
+                .content(prompt)
+                .finished(false)
+                .build());
+    }
+
+    /**
      * 核心推送方法：发送到指定 session 的 STOMP topic
      */
     private void push(String sessionId, ChatResponse response) {

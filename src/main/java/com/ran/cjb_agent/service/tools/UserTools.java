@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 /**
  * 用户管理工具集（LangChain4j @Tool）
  * 覆盖：用户创建、删除、查询（高危操作，经安全拦截层处理）
+ * 所有写操作通过 executeWithSudo 以 sudo -S 方式执行，不依赖 TTY。
  */
 @Slf4j
 @Component
@@ -43,7 +44,7 @@ public class UserTools {
         return "【用户信息：" + username + "】\n" + result;
     }
 
-    @Tool("创建新的普通用户账号。注意：此操作会修改系统配置，安全系统会请求确认")
+    @Tool("创建新的普通用户账号，并可选设置初始密码。此操作需要 sudo 权限。")
     public String createUser(
             @P("SSH连接ID") String sshConnectionId,
             @P("新用户的用户名（只能包含字母、数字、下划线，长度 3-32 字符）") String username,
@@ -55,10 +56,9 @@ public class UserTools {
             return "❌ 用户名格式无效：用户名必须以字母开头，只能包含字母、数字、下划线和连字符，长度 3-32 字符。";
         }
 
-        // 检查用户是否已存在
-        String checkCmd = "id " + username + " 2>/dev/null && echo EXISTS || echo NOT_EXISTS";
-        String check = sshService.execute(sshConnectionId, checkCmd, 5);
-        if (check.contains("EXISTS")) {
+        // 检查用户是否已存在（用 uid= 判断，避免 "NOT_EXISTS".contains("EXISTS") 误判）
+        String idCheck = sshService.execute(sshConnectionId, "id " + username + " 2>/dev/null", 5);
+        if (idCheck.contains("uid=")) {
             return "⚠️ 用户 '" + username + "' 已存在，无需重复创建。";
         }
 
@@ -72,26 +72,29 @@ public class UserTools {
         }
         cmd.append(" ").append(username);
 
-        // 注意：此命令会被 SecurityCheckNode（LangGraph4j 节点）中的 SecurityAssessmentAgent 评估
-        // 通过安全评估后才会到达此执行点
-        String createResult = sshService.execute(sshConnectionId, cmd.toString(), 15);
+        // useradd requires root → use sudo -S
+        String createResult = sshService.executeWithSudo(sshConnectionId, cmd.toString(), 15);
 
-        // 设置密码
+        // 设置密码：chpasswd 读取 "user:passwd" 格式（stdin），不需要 TTY
         if (password != null && !password.isBlank()) {
-            String passwdCmd = "echo '" + username + ":" + password + "' | chpasswd";
-            sshService.execute(sshConnectionId, passwdCmd, 10);
+            String escapedUser = username.replace("'", "'\\''");
+            String escapedPwd  = password.replace("'", "'\\''");
+            // executeWithSudo will prepend "echo <sshPwd> | sudo -S -p ''" so we pass
+            // the inner command as: bash -c "echo 'user:pwd' | chpasswd"
+            sshService.executeWithSudo(sshConnectionId,
+                    "bash -c \"printf '%s:%s\\n' '" + escapedUser + "' '" + escapedPwd + "' | chpasswd\"", 10);
         }
 
         // 验证创建结果
         String verifyResult = sshService.execute(sshConnectionId, "id " + username + " 2>/dev/null", 5);
         if (verifyResult.contains("uid=")) {
-            return String.format("✅ 用户 '%s' 创建成功！\n用户信息：%s\n%s",
-                    username, verifyResult.trim(), createResult);
+            return String.format("✅ 用户 '%s' 创建成功！\n用户信息：%s\n执行详情：%s",
+                    username, verifyResult.trim(), createResult.isBlank() ? "（无输出）" : createResult);
         }
         return "⚠️ 用户创建命令已执行，但验证时未找到用户，请手动确认：\n" + createResult;
     }
 
-    @Tool("删除指定用户账号。注意：此操作不可撤销，安全系统会请求二次确认")
+    @Tool("删除指定用户账号。此操作不可撤销，需要 sudo 权限。")
     public String deleteUser(
             @P("SSH连接ID") String sshConnectionId,
             @P("要删除的用户名") String username,
@@ -108,19 +111,45 @@ public class UserTools {
             return "⚠️ 用户 '" + username + "' 不存在，无需删除。";
         }
 
-        String deleteCmd = osProfileCache.get(sshConnectionId)
-                .map(p -> p.getCommandMap().getOrDefault("deleteUser", "userdel -r"))
-                .orElse("userdel -r");
+        String baseDeleteCmd = osProfileCache.get(sshConnectionId)
+                .map(p -> p.getCommandMap().getOrDefault("deleteUser", "userdel"))
+                .orElse("userdel");
 
-        // 如果不删除主目录，去掉 -r 参数
-        if (!removeHome) {
-            deleteCmd = deleteCmd.replace(" -r", "").trim() + " " + username;
+        String deleteCmd;
+        if (removeHome) {
+            deleteCmd = baseDeleteCmd + " -r " + username;
         } else {
-            deleteCmd = deleteCmd + " " + username;
+            deleteCmd = baseDeleteCmd.replace("-r", "").trim() + " " + username;
         }
 
-        String result = sshService.execute(sshConnectionId, deleteCmd, 15);
+        // userdel requires root → sudo -S
+        String result = sshService.executeWithSudo(sshConnectionId, deleteCmd, 15);
         return String.format("✅ 用户 '%s' 已删除（主目录%s）。\n%s",
                 username, removeHome ? "已同步删除" : "已保留", result);
+    }
+
+    @Tool("修改指定用户的登录密码。此操作需要 sudo 权限。")
+    public String changePassword(
+            @P("SSH连接ID") String sshConnectionId,
+            @P("要修改密码的用户名") String username,
+            @P("新密码") String newPassword) {
+
+        if (username == null || username.isBlank() || newPassword == null || newPassword.isBlank()) {
+            return "❌ 用户名和新密码不能为空。";
+        }
+        if ("root".equals(username)) {
+            return "❌ 禁止通过 Agent 修改 root 密码。";
+        }
+
+        String escapedUser = username.replace("'", "'\\''");
+        String escapedPwd  = newPassword.replace("'", "'\\''");
+        // chpasswd reads "user:password" from stdin — no TTY needed
+        String result = sshService.executeWithSudo(sshConnectionId,
+                "bash -c \"printf '%s:%s\\n' '" + escapedUser + "' '" + escapedPwd + "' | chpasswd\"", 10);
+
+        if (result.contains("⚠️")) {
+            return "❌ 密码修改失败：" + result;
+        }
+        return "✅ 用户 '" + username + "' 的密码已成功修改。";
     }
 }

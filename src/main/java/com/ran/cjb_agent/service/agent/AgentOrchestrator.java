@@ -14,6 +14,7 @@ import com.ran.cjb_agent.service.os.OsProfileCache;
 import com.ran.cjb_agent.service.os.SystemPromptBuilder;
 import com.ran.cjb_agent.service.log.AgentInteractionLogger;
 import com.ran.cjb_agent.service.persistence.ChatHistoryService;
+import com.ran.cjb_agent.service.ssh.SshSessionContext;
 import com.ran.cjb_agent.service.tools.*;
 import com.ran.cjb_agent.websocket.StreamingResponseEmitter;
 import dev.langchain4j.memory.ChatMemory;
@@ -53,6 +54,7 @@ public class AgentOrchestrator {
     private final OsAgentGraph osAgentGraph;
     private final AgentInteractionLogger interactionLogger;
     private final ChatHistoryService chatHistoryService;
+    private final SshSessionContext sshSessionContext;
 
     // LangChain4j @Tool 工具类
     private final DiskTools diskTools;
@@ -61,6 +63,7 @@ public class AgentOrchestrator {
     private final NetworkTools networkTools;
     private final UserTools userTools;
     private final CronTools cronTools;
+    private final PackageTools packageTools;
 
     /**
      * 异步处理用户消息（@Async 避免阻塞 HTTP 线程，在 agentTaskExecutor 线程池中执行）
@@ -113,6 +116,11 @@ public class AgentOrchestrator {
                                   String sshConnectionId, AgentSession session) {
         log.info("使用状态图模式处理 [{}]", sessionId);
 
+        // Bind so ExecutionNode can trigger SUDO_REQUEST when needed
+        if (sshConnectionId != null && !sshConnectionId.isBlank()) {
+            sshSessionContext.bind(sshConnectionId, sessionId);
+        }
+
         AgentState initialState = AgentState.builder()
                 .sessionId(sessionId)
                 .userMessage(userMessage)
@@ -145,11 +153,16 @@ public class AgentOrchestrator {
                 .chatLanguageModel(model)
                 .systemMessageProvider(id -> systemPrompt)
                 .chatMemory(memory)
-                .tools(diskTools, processTools, fileTools, networkTools, userTools, cronTools)
+                .tools(diskTools, processTools, fileTools, networkTools, userTools, cronTools, packageTools)
                 .build();
 
         try {
             String connId = sshConnectionId != null ? sshConnectionId : "";
+
+            // Bind connectionId → sessionId so SshService can look up sessionId for SUDO_REQUEST
+            if (!connId.isBlank()) {
+                sshSessionContext.bind(connId, sessionId);
+            }
 
             // Phase 1: generate and push thinking process + log it
             pushThinkingForSimpleTask(sessionId, userMessage, profile);

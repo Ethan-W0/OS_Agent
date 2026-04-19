@@ -13,5 +13,7 @@ public enum MessageType {
     REJECTED,
     TOKEN,
     /** Agent 意图推理过程（自然语言分析步骤 + 预计执行指令） */
-    THINKING
+    THINKING,
+    /** 需要用户在聊天框输入 sudo 密码才能继续执行 */
+    SUDO_REQUEST
 }

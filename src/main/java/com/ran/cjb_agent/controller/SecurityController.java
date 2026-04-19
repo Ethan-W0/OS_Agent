@@ -2,6 +2,7 @@ package com.ran.cjb_agent.controller;
 
 import com.ran.cjb_agent.model.dto.ConfirmationDto;
 import com.ran.cjb_agent.service.security.ConfirmationManager;
+import com.ran.cjb_agent.service.security.SudoPasswordManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +22,7 @@ import java.util.Map;
 public class SecurityController {
 
     private final ConfirmationManager confirmationManager;
+    private final SudoPasswordManager sudoPasswordManager;
 
     /**
      * 用户确认或拒绝高危操作
@@ -54,5 +56,35 @@ public class SecurityController {
     @GetMapping("/pending/count")
     public ResponseEntity<Map<String, Integer>> getPendingCount() {
         return ResponseEntity.ok(Map.of("pendingCount", confirmationManager.getPendingCount()));
+    }
+
+    /**
+     * 用户通过聊天框提交 sudo 密码
+     * 前端收到 SUDO_REQUEST 消息后，用户输入密码并点击提交时调用
+     */
+    @PostMapping("/sudo-password")
+    public ResponseEntity<Map<String, Object>> submitSudoPassword(
+            @RequestBody Map<String, String> body) {
+        String sessionId = body.get("sessionId");
+        String password  = body.get("password");
+
+        if (sessionId == null || sessionId.isBlank() || password == null) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", "sessionId 和 password 不能为空"
+            ));
+        }
+
+        log.info("收到 sudo 密码提交 [session={}]", sessionId);
+        boolean resolved = sudoPasswordManager.resolvePassword(sessionId, password);
+
+        if (!resolved) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", "当前会话没有等待中的 sudo 请求，可能已超时（120秒）。"
+            ));
+        }
+
+        return ResponseEntity.ok(Map.of("success", true, "message", "密码已提交，继续执行..."));
     }
 }
