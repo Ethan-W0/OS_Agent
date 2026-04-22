@@ -83,8 +83,10 @@ export const useChatStore = defineStore('chat', () => {
       isProcessing.value = false
     }
 
-    // SUDO_REQUEST keeps isProcessing = true (agent is paused waiting for password)
-    // so the UI still shows the agent is "thinking"
+    // RISK_WARNING (CRITICAL) 需要用户点击确认卡，清除 processing 状态让界面可交互
+    if (type === 'RISK_WARNING' && data.riskLevel === 'CRITICAL') {
+      isProcessing.value = false
+    }
 
     addMessage({
       type,

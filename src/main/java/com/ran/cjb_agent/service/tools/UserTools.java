@@ -1,12 +1,19 @@
 package com.ran.cjb_agent.service.tools;
 
+import com.ran.cjb_agent.model.dto.RiskWarningDto;
+import com.ran.cjb_agent.model.enums.RiskLevel;
 import com.ran.cjb_agent.service.os.OsProfileCache;
+import com.ran.cjb_agent.service.security.ConfirmationManager;
+import com.ran.cjb_agent.service.security.SessionContextHolder;
 import com.ran.cjb_agent.service.ssh.SshService;
+import com.ran.cjb_agent.websocket.StreamingResponseEmitter;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import java.util.UUID;
 
 /**
  * 用户管理工具集（LangChain4j @Tool）
@@ -20,6 +27,8 @@ public class UserTools {
 
     private final SshService sshService;
     private final OsProfileCache osProfileCache;
+    private final ConfirmationManager confirmationManager;
+    private final StreamingResponseEmitter emitter;
 
     @Tool("列出服务器上所有可登录的普通用户账号（排除系统账号）")
     public String listUsers(
@@ -94,7 +103,7 @@ public class UserTools {
         return "⚠️ 用户创建命令已执行，但验证时未找到用户，请手动确认：\n" + createResult;
     }
 
-    @Tool("删除指定用户账号。此操作不可撤销，需要 sudo 权限。")
+    @Tool("删除指定用户账号。此操作不可撤销，需要 sudo 权限。执行前需要用户二次确认。")
     public String deleteUser(
             @P("SSH连接ID") String sshConnectionId,
             @P("要删除的用户名") String username,
@@ -111,15 +120,35 @@ public class UserTools {
             return "⚠️ 用户 '" + username + "' 不存在，无需删除。";
         }
 
+        // 二次确认
+        String homeInfo = removeHome ? "（含主目录）" : "（保留主目录）";
+        String sessionId = SessionContextHolder.get();
+        String token = UUID.randomUUID().toString();
+        emitter.pushRiskWarning(sessionId, RiskWarningDto.builder()
+                .level(RiskLevel.CRITICAL)
+                .command("userdel" + (removeHome ? " --remove " : " ") + username)
+                .rationale("即将永久删除用户账号：" + username + homeInfo + "。此操作不可撤销，请确认是否继续。")
+                .confirmationToken(token)
+                .timeoutSeconds(120)
+                .build());
+
+        boolean approved = confirmationManager.waitForConfirmation(token);
+        if (!approved) {
+            return "🚫 用户已取消删除操作，账号未被删除：" + username;
+        }
+
         String baseDeleteCmd = osProfileCache.get(sshConnectionId)
                 .map(p -> p.getCommandMap().getOrDefault("deleteUser", "userdel"))
                 .orElse("userdel");
 
+        // 使用 --remove 代替 -r，避免在某些系统上产生模糊选项警告
         String deleteCmd;
         if (removeHome) {
-            deleteCmd = baseDeleteCmd + " -r " + username;
+            deleteCmd = baseDeleteCmd + " --remove " + username;
         } else {
-            deleteCmd = baseDeleteCmd.replace("-r", "").trim() + " " + username;
+            // 确保不带 -r/--remove 选项
+            deleteCmd = baseDeleteCmd.replaceAll("\\s*--remove\\s*", "").replaceAll("\\s*-r\\s*", "").trim()
+                    + " " + username;
         }
 
         // userdel requires root → sudo -S

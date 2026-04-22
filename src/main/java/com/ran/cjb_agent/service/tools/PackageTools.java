@@ -1,12 +1,19 @@
 package com.ran.cjb_agent.service.tools;
 
+import com.ran.cjb_agent.model.dto.RiskWarningDto;
+import com.ran.cjb_agent.model.enums.RiskLevel;
 import com.ran.cjb_agent.service.os.OsProfileCache;
+import com.ran.cjb_agent.service.security.ConfirmationManager;
+import com.ran.cjb_agent.service.security.SessionContextHolder;
 import com.ran.cjb_agent.service.ssh.SshService;
+import com.ran.cjb_agent.websocket.StreamingResponseEmitter;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import java.util.UUID;
 
 /**
  * 软件包管理工具集（LangChain4j @Tool）
@@ -20,6 +27,8 @@ public class PackageTools {
 
     private final SshService sshService;
     private final OsProfileCache osProfileCache;
+    private final ConfirmationManager confirmationManager;
+    private final StreamingResponseEmitter emitter;
 
     // ──────────────────────────────────────────────────────────────────
     // 内部：包管理器命令解析
@@ -124,7 +133,7 @@ public class PackageTools {
         }
     }
 
-    @Tool("卸载指定软件包。使用系统包管理器执行卸载操作，需要 sudo 权限。")
+    @Tool("卸载指定软件包。使用系统包管理器执行卸载操作，需要 sudo 权限。执行前需要用户二次确认。")
     public String removePackage(
             @P("SSH连接ID") String sshConnectionId,
             @P("要卸载的软件包名称") String packageName,
@@ -145,8 +154,24 @@ public class PackageTools {
             removeCmd = getRemoveCmd(sshConnectionId) + " " + packageName;
         }
 
-        String result = sshService.executeWithSudo(sshConnectionId, removeCmd, 120);
+        // 二次确认
         String action = doPurge ? "彻底卸载（含配置）" : "卸载";
+        String sessionId = SessionContextHolder.get();
+        String token = UUID.randomUUID().toString();
+        emitter.pushRiskWarning(sessionId, RiskWarningDto.builder()
+                .level(RiskLevel.CRITICAL)
+                .command(removeCmd)
+                .rationale("即将" + action + "软件包：" + packageName + "。此操作可能影响依赖该软件包的服务，请确认是否继续。")
+                .confirmationToken(token)
+                .timeoutSeconds(120)
+                .build());
+
+        boolean approved = confirmationManager.waitForConfirmation(token);
+        if (!approved) {
+            return "🚫 用户已取消卸载操作，软件包未被卸载：" + packageName;
+        }
+
+        String result = sshService.executeWithSudo(sshConnectionId, removeCmd, 120);
 
         if (result.startsWith("⚠️") || result.startsWith("❌")) {
             return "❌ 卸载失败：\n" + result;

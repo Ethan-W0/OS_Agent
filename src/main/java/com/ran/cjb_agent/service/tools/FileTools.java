@@ -1,11 +1,18 @@
 package com.ran.cjb_agent.service.tools;
 
+import com.ran.cjb_agent.model.dto.RiskWarningDto;
+import com.ran.cjb_agent.model.enums.RiskLevel;
+import com.ran.cjb_agent.service.security.ConfirmationManager;
+import com.ran.cjb_agent.service.security.SessionContextHolder;
 import com.ran.cjb_agent.service.ssh.SshService;
+import com.ran.cjb_agent.websocket.StreamingResponseEmitter;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import java.util.UUID;
 
 /**
  * 文件工具集（LangChain4j @Tool）
@@ -17,6 +24,8 @@ import org.springframework.stereotype.Component;
 public class FileTools {
 
     private final SshService sshService;
+    private final ConfirmationManager confirmationManager;
+    private final StreamingResponseEmitter emitter;
 
     @Tool("在指定目录下搜索文件，支持按文件名、类型、修改时间等条件筛选")
     public String findFiles(
@@ -148,7 +157,7 @@ public class FileTools {
         return "创建目录结果：\n" + result;
     }
 
-    @Tool("删除指定文件（不支持递归删除目录，避免误操作）")
+    @Tool("删除指定文件（不支持递归删除目录，避免误操作）。执行前需要用户二次确认。")
     public String deleteFile(
             @P("SSH连接ID") String sshConnectionId,
             @P("要删除的文件完整路径") String filePath) {
@@ -161,6 +170,23 @@ public class FileTools {
                 || filePath.startsWith("/usr/") || filePath.startsWith("/boot/")) {
             return "⚠️ 禁止删除系统目录下的文件，请手动操作并确认后再执行。";
         }
+
+        // 二次确认
+        String sessionId = SessionContextHolder.get();
+        String token = UUID.randomUUID().toString();
+        emitter.pushRiskWarning(sessionId, RiskWarningDto.builder()
+                .level(RiskLevel.CRITICAL)
+                .command("rm -f " + filePath)
+                .rationale("即将永久删除文件：" + filePath + "。此操作不可撤销，请确认是否继续。")
+                .confirmationToken(token)
+                .timeoutSeconds(120)
+                .build());
+
+        boolean approved = confirmationManager.waitForConfirmation(token);
+        if (!approved) {
+            return "🚫 用户已取消删除操作，文件未被删除：" + filePath;
+        }
+
         String result = sshService.execute(sshConnectionId, "rm -f " + filePath + " && echo 'OK'", 10);
         if (result.contains("OK")) {
             return "✅ 文件已删除：" + filePath;

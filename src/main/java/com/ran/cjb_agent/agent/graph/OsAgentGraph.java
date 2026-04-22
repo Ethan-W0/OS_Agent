@@ -2,6 +2,7 @@ package com.ran.cjb_agent.agent.graph;
 
 import com.ran.cjb_agent.agent.graph.nodes.*;
 import com.ran.cjb_agent.model.enums.RiskLevel;
+import com.ran.cjb_agent.service.security.SessionContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -32,6 +33,8 @@ public class OsAgentGraph {
 
         log.info("状态图开始执行 [{}]: {}", state.getSessionId(), state.getUserMessage());
 
+        // 将 sessionId 绑定到当前线程，供 @Tool 方法内部使用
+        SessionContextHolder.set(state.getSessionId());
         try {
             // ===== 节点1: 意图解析 =====
             state = intentParseNode.process(state);
@@ -87,6 +90,8 @@ public class OsAgentGraph {
             log.error("状态图执行异常 [{}]: {}", state.getSessionId(), e.getMessage(), e);
             state.setHasError(true);
             state.setErrorMessage("Agent 执行异常: " + e.getMessage());
+        } finally {
+            SessionContextHolder.clear();
         }
 
         log.info("状态图执行完成 [{}]", state.getSessionId());

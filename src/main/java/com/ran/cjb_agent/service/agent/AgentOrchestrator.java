@@ -15,6 +15,7 @@ import com.ran.cjb_agent.service.os.SystemPromptBuilder;
 import com.ran.cjb_agent.service.log.AgentInteractionLogger;
 import com.ran.cjb_agent.service.persistence.ChatHistoryService;
 import com.ran.cjb_agent.service.ssh.SshSessionContext;
+import com.ran.cjb_agent.service.security.SessionContextHolder;
 import com.ran.cjb_agent.service.tools.*;
 import com.ran.cjb_agent.websocket.StreamingResponseEmitter;
 import dev.langchain4j.memory.ChatMemory;
@@ -164,6 +165,9 @@ public class AgentOrchestrator {
                 sshSessionContext.bind(connId, sessionId);
             }
 
+            // 将 sessionId 绑定到当前线程，供 @Tool 内部的确认弹窗使用
+            SessionContextHolder.set(sessionId);
+
             // Phase 1: generate and push thinking process + log it
             pushThinkingForSimpleTask(sessionId, userMessage, profile);
 
@@ -176,6 +180,8 @@ public class AgentOrchestrator {
         } catch (Exception e) {
             log.error("AiServices 执行失败 [{}]: {}", sessionId, e.getMessage());
             emitter.pushError(sessionId, "执行失败：" + e.getMessage());
+        } finally {
+            SessionContextHolder.clear();
         }
     }
 

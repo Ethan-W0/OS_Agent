@@ -270,6 +270,10 @@ async function handleConfirm(msg: ChatMessage, approved: boolean) {
       approved
     })
     chatStore.markConfirmation(msg.confirmationToken!, approved)
+    // 用户批准后 agent 恢复执行，重新显示 processing 状态
+    if (approved) {
+      chatStore.isProcessing = true
+    }
   } catch (e) {
     console.error('确认请求失败', e)
   }
