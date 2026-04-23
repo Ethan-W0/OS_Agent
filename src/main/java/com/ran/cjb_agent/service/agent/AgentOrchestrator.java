@@ -65,6 +65,7 @@ public class AgentOrchestrator {
     private final UserTools userTools;
     private final CronTools cronTools;
     private final PackageTools packageTools;
+    private final CommandTools commandTools;
 
     /**
      * 异步处理用户消息（@Async 避免阻塞 HTTP 线程，在 agentTaskExecutor 线程池中执行）
@@ -148,13 +149,14 @@ public class AgentOrchestrator {
         String systemPrompt = systemPromptBuilder.buildSystemPrompt(profile);
 
         ChatMemory memory = memoryStore.getOrCreate(sessionId);
+        
         ChatLanguageModel model = buildCurrentModel();
 
         OsAssistant assistant = AiServices.builder(OsAssistant.class)
                 .chatLanguageModel(model)
                 .systemMessageProvider(id -> systemPrompt)
                 .chatMemory(memory)
-                .tools(diskTools, processTools, fileTools, networkTools, userTools, cronTools, packageTools)
+                .tools(diskTools, processTools, fileTools, networkTools, userTools, cronTools, packageTools, commandTools)
                 .build();
 
         try {

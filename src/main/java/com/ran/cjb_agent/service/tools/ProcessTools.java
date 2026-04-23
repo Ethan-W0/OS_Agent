@@ -88,4 +88,25 @@ public class ProcessTools {
         return String.format("✅ 已向进程 PID=%d（%s）发送 %s 信号。\n%s",
                 pid, procInfo.trim(), "KILL".equalsIgnoreCase(signal) ? "SIGKILL（强制终止）" : "SIGTERM（优雅终止）", result);
     }
+    @Tool("查询系统服务（Systemd/SysVinit）的运行状态，包括服务是否激活、是否开机自启、最近日志等。" +
+            "适用于：查看 nginx/mysql/redis/sshd 等服务状态，比 ps 进程搜索更准确全面。")
+    public String getServiceStatus(
+            @P("SSH连接ID") String sshConnectionId,
+            @P("服务名称，例如 nginx、mysql、sshd、docker") String serviceName) {
+
+        if (serviceName == null || serviceName.isBlank()) {
+            return "请提供服务名称。";
+        }
+
+        // 优先 systemctl（systemd），降级到 service（SysVinit）
+        String cmd = String.format(
+                "systemctl status %s 2>/dev/null || service %s status 2>/dev/null || " +
+                        "echo '未找到服务 %s，请确认服务名是否正确'",
+                serviceName, serviceName, serviceName
+        );
+
+        String result = sshService.execute(sshConnectionId, cmd, 15);
+        return String.format("【服务状态：%s】\n%s", serviceName, result);
+    }
+
 }
