@@ -193,4 +193,40 @@ public class FileTools {
         }
         return "删除结果：\n" + result;
     }
+    @Tool("删除指定文件夹。执行前需要用户二次确认。")
+    public String deleteDir(
+            @P("SSH连接ID") String sshConnectionId,
+            @P("要删除的文件夹完整路径") String filePath) {
+
+        if (filePath == null || filePath.isBlank()) {
+            return "请提供文件夹路径。";
+        }
+        // Block system critical paths
+        if (filePath.equals("/") || filePath.startsWith("/etc/") || filePath.startsWith("/bin/")
+                || filePath.startsWith("/usr/") || filePath.startsWith("/boot/")) {
+            return "⚠️ 禁止删除系统目录下的文件，请手动操作并确认后再执行。";
+        }
+
+        // 二次确认
+        String sessionId = SessionContextHolder.get();
+        String token = UUID.randomUUID().toString();
+        emitter.pushRiskWarning(sessionId, RiskWarningDto.builder()
+                .level(RiskLevel.CRITICAL)
+                .command("rm -rf " + filePath)
+                .rationale("即将永久删除文件夹：" + filePath + "。此操作不可撤销，请确认是否继续。")
+                .confirmationToken(token)
+                .timeoutSeconds(120)
+                .build());
+
+        boolean approved = confirmationManager.waitForConfirmation(token);
+        if (!approved) {
+            return "🚫 用户已取消删除操作，文件夹未被删除：" + filePath;
+        }
+
+        String result = sshService.execute(sshConnectionId, "rm -rf " + filePath + " && echo 'OK'", 10);
+        if (result.contains("OK")) {
+            return "✅ 文件夹已删除：" + filePath;
+        }
+        return "删除结果：\n" + result;
+    }
 }
